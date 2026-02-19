@@ -10,7 +10,7 @@ const requests = new Map<string, { count: number; resetAt: number }>();
 
 function cleanup() {
   const now = Date.now();
-  for (const [ip, data] of requests.entries()) {
+  for (const [ip, data] of Array.from(requests.entries())) {
     if (data.resetAt < now) requests.delete(ip);
   }
 }
