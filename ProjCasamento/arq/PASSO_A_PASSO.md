@@ -249,8 +249,8 @@
 ## Fase 9: Deploy
 
 ### 9.1 Repositório
-- [ ] Inicializar git (`git init`)
-- [ ] Criar `.gitignore` adequado
+- [x] Inicializar git (`git init`)
+- [x] Criar `.gitignore` adequado
 - [ ] Commit inicial
 - [ ] Criar repositório no GitHub
 - [ ] Push do código

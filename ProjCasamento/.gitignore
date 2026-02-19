@@ -1,3 +1,6 @@
+# Credenciais / Secrets (NUNCA commitar)
+**/client_secret*.json
+
 # Dependencies
 /node_modules
 /.pnp
