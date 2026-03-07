@@ -50,7 +50,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
   }
 
   return (
-    <section className="bg-white p-6 rounded-lg border border-casamento-sage">
+    <section className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
       <h2 className="text-lg font-semibold text-stone-800 mb-4">Adicionar convidado</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -59,7 +59,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
             type="text"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+            className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent transition-all"
             required
           />
         </div>
@@ -70,7 +70,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
             value={acompanhantes}
             onChange={(e) => setAcompanhantes(e.target.value)}
             placeholder="Ex: Maria, João"
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+            className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent transition-all"
           />
         </div>
         <div>
@@ -80,26 +80,34 @@ export default function AddConvidado({ onAdicionado }: Props) {
             value={contato}
             onChange={(e) => setContato(e.target.value)}
             placeholder="Ex: (11) 99999-9999"
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+            className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent transition-all"
           />
         </div>
         {erro && <p className="text-red-600 text-sm">{erro}</p>}
         {sucesso && (
-          <div className="flex items-center gap-2 p-3 bg-casamento-sage rounded-lg">
-            <span className="text-casamento-verde font-medium">✓ Link gerado!</span>
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-stone-50 rounded-2xl border border-stone-100">
+            <span className="text-casamento-oliva-escuro font-medium">✓ Link gerado!</span>
             <button
               type="button"
               onClick={() => navigator.clipboard.writeText(sucesso)}
-              className="text-sm text-casamento-verde hover:underline"
+              className="text-sm text-casamento-oliva-escuro hover:underline"
             >
               Copiar
             </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent("Confirmação de presença - Lucas & Beatriz: " + sucesso)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-casamento-oliva-escuro hover:underline"
+            >
+              Compartilhar no WhatsApp
+            </a>
           </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50"
+          className="px-6 py-3 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 disabled:opacity-50"
         >
           {loading ? "Adicionando..." : "Adicionar"}
         </button>

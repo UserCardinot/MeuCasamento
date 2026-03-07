@@ -26,14 +26,14 @@ export default function StatusPresenca({ token }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-casamento-sage border border-casamento-verde/50 text-stone-800 px-4 py-3 rounded-lg flex items-center justify-center gap-2">
-        <span>✓</span>
-        <span>Sua presença está confirmada!</span>
+      <div className="bg-white rounded-2xl shadow-sm py-6 px-8 flex items-center justify-center gap-3 border border-stone-100">
+        <span className="text-casamento-oliva-escuro" aria-hidden>✓</span>
+        <span className="font-sans font-medium text-stone-800">Sua presença está confirmada!</span>
       </div>
       <button
         onClick={handleCancelar}
         disabled={loading}
-        className="text-sm text-stone-500 hover:text-red-600 underline disabled:opacity-50"
+        className="block mx-auto font-sans text-sm text-stone-500 hover:text-red-600 disabled:opacity-50 transition-colors focus:ring-2 focus:ring-red-300 focus:ring-offset-2 rounded"
       >
         {loading ? "Cancelando..." : "Cancelar confirmação"}
       </button>

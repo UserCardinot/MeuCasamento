@@ -1,13 +1,18 @@
 export default function ConviteLoading() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-b from-casamento-creme to-casamento-sage">
-      <div className="max-w-lg w-full text-center space-y-6 animate-pulse">
-        <div className="h-6 bg-casamento-sage rounded w-32 mx-auto" />
-        <div className="h-12 bg-casamento-sage rounded w-48 mx-auto" />
-        <div className="h-4 bg-casamento-sage/70 rounded w-64 mx-auto" />
-        <div className="h-16 bg-casamento-sage/50 rounded w-full" />
-        <div className="h-10 bg-casamento-sage rounded w-40 mx-auto" />
-      </div>
+    <main className="min-h-screen bg-[#FAFAFA]">
+      <section className="min-h-[60vh] flex flex-col items-center justify-center px-6 py-32 animate-pulse">
+        <div className="h-3 bg-stone-200 rounded w-32 mb-8" />
+        <div className="h-20 sm:h-28 bg-stone-200 rounded w-64 sm:w-80" />
+        <div className="h-4 bg-stone-100 rounded w-72 mt-8" />
+      </section>
+      <section className="px-6 py-24 border-t border-stone-200">
+        <div className="max-w-3xl mx-auto flex justify-center gap-4 sm:gap-8 flex-wrap">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="w-20 h-24 sm:w-24 sm:h-28 bg-stone-100 rounded-2xl" />
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

@@ -78,7 +78,7 @@ export async function getPresencaStatus(
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) return null;
 
-  const rows = await readFromSheet(sheetId, "Presenças!A2:D");
+  const rows = await readFromSheet(sheetId, "Presenças!A2:F");
   const tokenNorm = String(token).trim().toLowerCase();
   const matching = rows.filter(
     (row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm
@@ -87,11 +87,35 @@ export async function getPresencaStatus(
 
   const last = matching[matching.length - 1] as (string | number)[];
   const confirmado = String(last[1] ?? "").toLowerCase().includes("sim");
+  const dataCol = last[5] ?? last[3];
   return {
     confirmado,
     telefone: last[2] ? String(last[2]) : undefined,
-    data: last[3] ? String(last[3]) : undefined,
+    data: dataCol ? String(dataCol) : undefined,
   };
+}
+
+/**
+ * Busca o catálogo de presentes (aba CatalogoPresentes: nome | preco | url | imagem | ativo)
+ */
+export async function getCatalogoPresentes(): Promise<
+  { nome: string; preco: string; url: string; imagem: string; ativo: string }[]
+> {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  if (!sheetId) return [];
+
+  try {
+    const rows = await readFromSheet(sheetId, "CatalogoPresentes!A2:E");
+    return (rows as (string | number)[][]).map((row) => ({
+      nome: String(row[0] ?? ""),
+      preco: String(row[1] ?? ""),
+      url: String(row[2] ?? ""),
+      imagem: String(row[3] ?? ""),
+      ativo: String(row[4] ?? "Sim").toLowerCase(),
+    })).filter((p) => p.ativo.includes("sim") && p.nome.trim());
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -7,7 +7,7 @@ export default async function QrCodePix() {
 
   if (!pixCopiaCola) {
     return (
-      <div className="bg-casamento-creme border border-casamento-verde/30 rounded-lg p-4 text-stone-700 text-sm">
+      <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-4 text-stone-700 text-sm">
         <p className="font-medium">Configure o Pix</p>
         <p className="mt-1">
           Adicione PIX_COPIA_COLA no .env.local (código copia e cola do seu banco) para exibir o QR Code.
@@ -23,7 +23,8 @@ export default async function QrCodePix() {
 
   return (
     <div className="flex flex-col sm:flex-row gap-6 items-start">
-      <div className="bg-casamento-white p-4 rounded-lg shadow-sm border border-casamento-sage">
+      <div className="bg-white p-6 rounded-2xl shadow-sm">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={qrDataUrl} alt="QR Code Pix" className="w-48 h-48" />
       </div>
       <div className="flex-1 space-y-2">

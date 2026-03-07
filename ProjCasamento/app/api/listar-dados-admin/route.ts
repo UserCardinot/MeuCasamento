@@ -16,33 +16,41 @@ export async function GET() {
   }
 
   try {
-    const [convidados, presencas, presentes, uploads] = await Promise.all([
+    const [convidados, presencas, presentes, uploads, recados, catalogoPresentes] = await Promise.all([
       readFromSheet(sheetId, "Convidados!A2:E"),
-      readFromSheet(sheetId, "Presenças!A2:D"),
+      readFromSheet(sheetId, "Presenças!A2:F"),
       readFromSheet(sheetId, "Presentes!A2:D"),
       readFromSheet(sheetId, "Uploads!A2:D"),
+      readFromSheet(sheetId, "Recados!A2:D").catch(() => []),
+      readFromSheet(sheetId, "CatalogoPresentes!A2:E").catch(() => []),
     ]);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     const convidadosFormatados = (convidados as (string | number)[][]).map((row) => ({
-      token: row[0],
-      nome: row[1],
-      acompanhantes: row[2],
-      contato: row[3],
-      data: row[4],
+      token: String(row[0] ?? ""),
+      nome: String(row[1] ?? ""),
+      acompanhantes: String(row[2] ?? ""),
+      contato: String(row[3] ?? ""),
+      data: String(row[4] ?? ""),
       link: `${baseUrl}/convite?token=${row[0]}`,
     }));
 
+    const tokenParaNome = new Map(convidadosFormatados.map((c) => [c.token.toLowerCase(), c.nome]));
+
     const presencasFormatadas = (presencas as (string | number)[][]).map((row) => ({
       token: row[0],
+      nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
       confirmado: row[1],
       telefone: row[2],
-      data: row[3],
+      mensagem: row[3],
+      nomesAcompanhantes: row[4],
+      data: row[5] ?? row[3],
     }));
 
     const presentesFormatados = (presentes as (string | number)[][]).map((row) => ({
       token: row[0],
+      nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
       presente: row[1],
       valor: row[2],
       data: row[3],
@@ -55,16 +63,34 @@ export async function GET() {
       data: row[3],
     }));
 
+    const recadosFormatados = (recados as (string | number)[][]).map((row) => ({
+      token: row[0],
+      nome: row[1],
+      mensagem: row[2],
+      data: row[3],
+    }));
+
+    const catalogoFormatado = (catalogoPresentes as (string | number)[][]).map((row) => ({
+      nome: String(row[0] ?? ""),
+      preco: String(row[1] ?? ""),
+      url: String(row[2] ?? ""),
+      imagem: String(row[3] ?? ""),
+      ativo: String(row[4] ?? "Sim"),
+    }));
+
     return NextResponse.json({
       convidados: convidadosFormatados,
       presencas: presencasFormatadas,
       presentes: presentesFormatados,
       uploads: uploadsFormatados,
+      recados: recadosFormatados,
+      catalogoPresentes: catalogoFormatado,
       resumo: {
         totalConvidados: convidadosFormatados.length,
         totalPresencas: presencasFormatadas.length,
         totalPresentes: presentesFormatados.length,
         totalUploads: uploadsFormatados.length,
+        totalRecados: recadosFormatados.length,
       },
     });
   } catch (err) {

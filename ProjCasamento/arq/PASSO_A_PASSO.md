@@ -70,9 +70,11 @@
 - [ ] Configurar abas e cabeçalhos:
 
   | Aba **Convidados** | token | nome | acompanhantes | contato | data_cadastro |
-  | Aba **Presenças**  | token | confirmado | telefone | data |
+  | Aba **Presenças**  | token | confirmado | telefone | mensagem | nomes_acompanhantes | data |
   | Aba **Presentes**  | token | presente | valor | data |
   | Aba **Uploads**    | tipo | nome | arquivo | data |
+  | Aba **Recados**    | token | nome | mensagem | data |
+  | Aba **CatalogoPresentes** | nome | preco | url | imagem | ativo |
 
 - [ ] Obter ID da planilha (da URL)
 - [ ] Compartilhar planilha com e-mail de serviço (se aplicável)
@@ -139,7 +141,7 @@
 
 ### 5.1 Página de Presentes
 - [x] Validar token na URL
-- [x] Listar presentes (lista fixa em `lib/presentes.ts`)
+- [x] Listar presentes (catálogo cadastrado pelo admin)
 - [x] Exibir valor sugerido por presente
 - [x] Exibir QR Code Pix (gerado de PIX_COPIA_COLA)
 - [x] Botão "Já fiz o Pix" → formulário

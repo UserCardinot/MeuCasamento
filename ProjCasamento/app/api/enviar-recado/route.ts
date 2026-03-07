@@ -13,27 +13,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { token?: string; confirmado?: boolean; telefone?: string; mensagem?: string; nomesAcompanhantes?: string };
+  let body: { token?: string; mensagem?: string };
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { erro: "Dados inválidos" },
-      { status: 400 }
-    );
+    return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   }
 
-  const { token, confirmado, telefone, mensagem, nomesAcompanhantes } = body;
-
+  const { token, mensagem } = body;
   if (!token || typeof token !== "string") {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
 
-  if (typeof confirmado !== "boolean") {
-    return NextResponse.json(
-      { erro: "Confirmação obrigatória (sim/não)" },
-      { status: 400 }
-    );
+  const msg = typeof mensagem === "string" ? mensagem.trim() : "";
+  if (!msg || msg.length > 500) {
+    return NextResponse.json({ erro: "Mensagem obrigatória (máx. 500 caracteres)" }, { status: 400 });
   }
 
   const isValid = await validateGuestToken(token);
@@ -41,25 +35,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
+  const { getConvidadoByToken } = await import("@/lib/google");
+  const convidado = await getConvidadoByToken(token);
+  const nome = convidado?.[1] || "Anônimo";
+
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) {
-    return NextResponse.json(
-      { erro: "Configuração do servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
   }
 
   try {
     const data = new Date().toLocaleString("pt-BR");
-    await appendToSheet(sheetId, "Presenças!A:F", [
-      [token, confirmado ? "Sim" : "Não", telefone || "", mensagem || "", nomesAcompanhantes || "", data],
-    ]);
+    await appendToSheet(sheetId, "Recados!A:D", [[token, nome, msg, data]]);
     return NextResponse.json({ sucesso: true });
   } catch (err) {
-    console.error("Erro ao salvar presença:", err);
-    return NextResponse.json(
-      { erro: "Erro ao salvar. Tente novamente." },
-      { status: 500 }
-    );
+    console.error("Erro ao salvar recado:", err);
+    return NextResponse.json({ erro: "Erro ao enviar. Tente novamente." }, { status: 500 });
   }
 }

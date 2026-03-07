@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { validateGuestToken } from "@/lib/auth";
-import { getConvidadoByToken, getPresenteRegistrado } from "@/lib/google";
-import { LISTA_PRESENTES } from "@/lib/presentes";
-import FormPix from "./FormPix";
-import QrCodePix from "./QrCodePix";
+import { getConvidadoByToken, getPresenteRegistrado, getCatalogoPresentes } from "@/lib/google";
+import ListaPresentesConvidado from "./ListaPresentesConvidado";
 
 type Props = {
   searchParams: Promise<{ token?: string | string[] }> | { token?: string | string[] };
@@ -18,11 +16,9 @@ export default async function PresentesPage({ searchParams }: Props) {
 
   if (!token) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-b from-casamento-creme to-casamento-sage">
-        <div className="text-center max-w-md">
-          <p className="text-stone-600 text-lg">Link inválido.</p>
-          <p className="text-stone-500 mt-2">Acesse através do link do seu convite.</p>
-        </div>
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 py-24 bg-[#FAFAFA]">
+        <p className="text-stone-600 text-xl">Link inválido.</p>
+        <p className="text-stone-500 mt-2">Acesse através do link do seu convite.</p>
       </main>
     );
   }
@@ -30,72 +26,38 @@ export default async function PresentesPage({ searchParams }: Props) {
   const isValid = await validateGuestToken(token);
   if (!isValid) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-b from-casamento-creme to-casamento-sage">
-        <div className="text-center max-w-md">
-          <p className="text-stone-600 text-lg">Link inválido ou expirado.</p>
-        </div>
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 py-24 bg-[#FAFAFA]">
+        <p className="text-stone-600 text-xl">Link inválido ou expirado.</p>
       </main>
     );
   }
 
-  const [convidado, presenteRegistrado] = await Promise.all([
+  const [convidado, presenteRegistrado, catalogo] = await Promise.all([
     getConvidadoByToken(token),
     getPresenteRegistrado(token),
+    getCatalogoPresentes(),
   ]);
   const nome = convidado?.[1] || "Convidado";
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-b from-casamento-creme to-casamento-sage">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen px-6 sm:px-12 lg:px-24 py-20 bg-[#FAFAFA]">
+      <div className="max-w-4xl mx-auto">
         <Link
           href={`/convite?token=${token}`}
-          className="text-casamento-verde hover:underline text-sm mb-6 inline-block"
+          className="font-sans text-stone-500 hover:text-casamento-oliva-escuro text-sm font-medium transition-colors inline-flex items-center gap-2 mb-12 focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 rounded"
         >
           ← Voltar ao convite
         </Link>
 
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-stone-800 mb-2">Lista de Presentes</h1>
-        <p className="text-stone-600 mb-8">Olá, {nome}! Escolha como deseja contribuir.</p>
+        <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">Lista de presentes</p>
+        <h1 className="font-heading text-3xl sm:text-4xl font-light text-stone-900 mb-4">Escolha seu presente</h1>
+        <p className="font-sans text-stone-600 mb-12">Olá, {nome}! Contribua com Pix.</p>
 
-        {presenteRegistrado ? (
-          <div className="bg-casamento-sage border border-casamento-verde/50 text-stone-800 px-4 py-3 rounded-lg mb-8">
-            <p className="font-medium">✓ Você já registrou sua contribuição</p>
-            <p className="text-sm mt-1">
-              {presenteRegistrado.presente}
-              {presenteRegistrado.valor && ` – R$ ${presenteRegistrado.valor}`}
-            </p>
-          </div>
-        ) : (
-          <>
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-stone-800 mb-4">Opções de presentes</h2>
-              <ul className="space-y-3">
-                {LISTA_PRESENTES.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex justify-between items-center py-2 border-b border-stone-200 last:border-0"
-                  >
-                    <span className="text-stone-700">{p.nome}</span>
-                    {p.valorSugerido && (
-                      <span className="text-casamento-verde font-medium">
-                        R$ {p.valorSugerido.toFixed(2)}
-                      </span>
-                    )}
-                    {!p.valorSugerido && (
-                      <span className="text-stone-500 text-sm">À escolha</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-stone-800 mb-4">Pagar com Pix</h2>
-              <QrCodePix />
-              <FormPix token={token} />
-            </section>
-          </>
-        )}
+        <ListaPresentesConvidado
+          token={token}
+          catalog={catalogo}
+          presenteRegistrado={presenteRegistrado}
+        />
       </div>
     </main>
   );

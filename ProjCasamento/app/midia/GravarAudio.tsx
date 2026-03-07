@@ -129,7 +129,7 @@ export default function GravarAudio({ eventToken }: Props) {
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex: João"
-          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all"
         />
       </div>
 
@@ -141,7 +141,7 @@ export default function GravarAudio({ eventToken }: Props) {
           <button
             type="button"
             onClick={startRecording}
-            className="px-6 py-3 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90"
+            className="px-6 py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
           >
             🎙️ Gravar
           </button>
@@ -155,7 +155,7 @@ export default function GravarAudio({ eventToken }: Props) {
             <button
               type="button"
               onClick={stopRecording}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 text-white rounded-2xl hover:bg-red-600 focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:outline-none"
             >
               Parar
             </button>
@@ -188,13 +188,13 @@ export default function GravarAudio({ eventToken }: Props) {
         </div>
       )}
       {sucesso && (
-        <p className="text-casamento-verde font-medium">✓ Áudio enviado com sucesso!</p>
+        <p className="text-casamento-oliva-escuro font-medium">✓ Áudio enviado com sucesso!</p>
       )}
 
       <button
         type="submit"
         disabled={loading || !audioBlob}
-        className="w-full py-3 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="w-full py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
       >
         {loading ? "Enviando..." : "Enviar áudio"}
       </button>

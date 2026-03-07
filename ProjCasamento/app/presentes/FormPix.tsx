@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LISTA_PRESENTES } from "@/lib/presentes";
 
-type Props = { token: string };
+type Presente = { nome: string; preco: string; url: string; imagem: string };
 
-export default function FormPix({ token }: Props) {
+type Props = {
+  token: string;
+  catalog: Presente[];
+  presentePreselecionado?: string;
+};
+
+export default function FormPix({ token, catalog, presentePreselecionado }: Props) {
   const router = useRouter();
-  const [presente, setPresente] = useState("");
+  const [presente, setPresente] = useState(presentePreselecionado || "");
   const [valor, setValor] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -55,20 +60,20 @@ export default function FormPix({ token }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-6">
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-2">
+        <label className="block text-sm font-medium text-stone-700 mb-1.5">
           Qual presente escolheu? *
         </label>
         <select
           value={presente}
           onChange={(e) => setPresente(e.target.value)}
           required
-          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent transition-all"
         >
           <option value="">Selecione...</option>
-          {LISTA_PRESENTES.map((p) => (
-            <option key={p.id} value={p.nome}>
+          {catalog.map((p, i) => (
+            <option key={i} value={p.nome}>
               {p.nome}
-              {p.valorSugerido ? ` (R$ ${p.valorSugerido})` : ""}
+              {p.preco ? ` (R$ ${p.preco.replace(".", ",")})` : ""}
             </option>
           ))}
         </select>
@@ -83,7 +88,7 @@ export default function FormPix({ token }: Props) {
           value={valor}
           onChange={(e) => setValor(e.target.value)}
           placeholder="Ex: 150,00"
-          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+          className="w-full px-4 py-3 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all placeholder:text-stone-400"
         />
       </div>
 
@@ -97,7 +102,7 @@ export default function FormPix({ token }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+        className="w-full py-3 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva active:scale-[0.98] disabled:opacity-50 transition shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
       >
         {loading ? "Registrando..." : "Já fiz o Pix"}
       </button>

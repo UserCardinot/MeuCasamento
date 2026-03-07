@@ -14,15 +14,15 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 bg-gradient-to-b from-casamento-creme to-casamento-sage">
-      <div className="text-center max-w-md">
-        <h1 className="font-heading text-4xl font-bold text-stone-800">Algo deu errado</h1>
-        <p className="mt-4 text-stone-600">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 py-24 bg-[#FAFAFA]">
+      <div className="text-center max-w-md space-y-6">
+        <h1 className="font-heading text-4xl font-light text-stone-900">Algo deu errado</h1>
+        <p className="font-sans text-stone-600">
           Ocorreu um erro inesperado. Tente novamente ou volte mais tarde.
         </p>
         <button
           onClick={reset}
-          className="mt-8 px-6 py-3 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90 transition"
+          className="px-8 py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
         >
           Tentar novamente
         </button>

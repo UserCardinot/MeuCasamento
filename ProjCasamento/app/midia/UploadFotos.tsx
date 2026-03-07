@@ -88,7 +88,7 @@ export default function UploadFotos({ eventToken }: Props) {
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex: Maria"
-          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-casamento-verde focus:border-casamento-verde"
+          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all"
         />
       </div>
 
@@ -101,10 +101,11 @@ export default function UploadFotos({ eventToken }: Props) {
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={handleFileChange}
-          className="block w-full text-sm text-stone-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-casamento-verde file:text-white file:cursor-pointer hover:file:opacity-90"
+          className="block w-full text-sm text-stone-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-casamento-oliva-escuro file:rounded-xl file:text-white file:cursor-pointer hover:file:opacity-90"
         />
         {file && (
           <div className="mt-2 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={URL.createObjectURL(file)}
               alt="Preview"
@@ -124,13 +125,13 @@ export default function UploadFotos({ eventToken }: Props) {
         </div>
       )}
       {sucesso && (
-        <p className="text-casamento-verde font-medium">✓ Foto enviada com sucesso!</p>
+        <p className="text-casamento-oliva-escuro font-medium flex items-center gap-2">✓ Foto enviada com sucesso!</p>
       )}
 
       <button
         type="submit"
         disabled={loading || !file}
-        className="w-full py-3 bg-casamento-verde text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="w-full py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
       >
         {loading ? "Enviando..." : "Enviar foto"}
       </button>
