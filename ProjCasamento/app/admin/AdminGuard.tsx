@@ -10,7 +10,7 @@ export default async function AdminGuard() {
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen px-6 sm:px-12 py-24 bg-[#FAFAFA] flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-stone-100/90 via-stone-50 to-white px-6 py-24 sm:px-12">
         <div className="w-full max-w-sm">
           <LoginForm />
         </div>

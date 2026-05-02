@@ -11,8 +11,16 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-body)", "system-ui", "sans-serif"],
         heading: ["var(--font-heading)", "Georgia", "serif"],
+        admin: ["var(--font-admin-sans)", "system-ui", "sans-serif"],
+        "admin-heading": ["var(--font-admin-serif)", "Georgia", "serif"],
+        "invite-caps": ["var(--font-invite-caps)", "Cinzel", "Georgia", "serif"],
+        "invite-script": ["var(--font-invite-script)", "cursive"],
       },
       colors: {
+        invite: {
+          olive: "#4B5320",
+          cream: "#FDFDFB",
+        },
         casamento: {
           "oliva-escuro": "#4A5D3A",
           oliva: "#5A6B4A",

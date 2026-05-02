@@ -17,7 +17,7 @@ export async function GET() {
 
   try {
     const [convidados, presencas, presentes, uploads, recados, catalogoPresentes] = await Promise.all([
-      readFromSheet(sheetId, "Convidados!A2:E"),
+      readFromSheet(sheetId, "Convidados!A2:F"),
       readFromSheet(sheetId, "Presenças!A2:F"),
       readFromSheet(sheetId, "Presentes!A2:D"),
       readFromSheet(sheetId, "Uploads!A2:D"),
@@ -33,6 +33,7 @@ export async function GET() {
       acompanhantes: String(row[2] ?? ""),
       contato: String(row[3] ?? ""),
       data: String(row[4] ?? ""),
+      origem: String(row[5] ?? ""),
       link: `${baseUrl}/convite?token=${row[0]}`,
     }));
 

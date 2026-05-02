@@ -56,48 +56,49 @@ export default function AddPresente({ onAdicionado }: Props) {
   }
 
   return (
-    <section className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 mt-6">
-      <h2 className="text-lg font-semibold text-stone-800 mb-4">Adicionar presente ao catálogo</h2>
+    <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-zinc-950/[0.04] sm:p-7">
+      <h2 className="mb-1 font-heading text-lg font-semibold tracking-tight text-zinc-900">Adicionar presente ao catálogo</h2>
+      <p className="mb-5 text-sm text-zinc-500">O item aparecerá na lista de presentes do site.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Nome *</label>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Nome *</label>
           <input
             type="text"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Cafeteira Nespresso"
-            className="w-full px-3 py-2 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 focus:border-casamento-sage focus:ring-2 focus:ring-casamento-pastel/50"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Preço sugerido (R$)</label>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Preço sugerido (R$)</label>
           <input
             type="text"
             value={preco}
             onChange={(e) => setPreco(e.target.value)}
             placeholder="Ex: 150,00"
-            className="w-full px-3 py-2 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 focus:border-casamento-sage focus:ring-2 focus:ring-casamento-pastel/50"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">URL do produto</label>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">URL do produto</label>
           <input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://..."
-            className="w-full px-3 py-2 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 focus:border-casamento-sage focus:ring-2 focus:ring-casamento-pastel/50"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">URL da imagem</label>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">URL da imagem</label>
           <input
             type="url"
             value={imagem}
             onChange={(e) => setImagem(e.target.value)}
             placeholder="https://..."
-            className="w-full px-3 py-2 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 focus:border-casamento-sage focus:ring-2 focus:ring-casamento-pastel/50"
           />
         </div>
         {erro && <p className="text-red-600 text-sm">{erro}</p>}
@@ -105,7 +106,7 @@ export default function AddPresente({ onAdicionado }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 disabled:opacity-50"
+          className="rounded-xl bg-casamento-oliva-escuro px-6 py-3 font-medium text-white transition-all duration-200 hover:bg-casamento-oliva disabled:opacity-50"
         >
           {loading ? "Adicionando..." : "Adicionar presente"}
         </button>

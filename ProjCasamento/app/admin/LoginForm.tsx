@@ -33,10 +33,9 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-10">
-      <h1 className="font-heading text-2xl font-bold text-stone-800 mb-6 text-center">
-        Área Admin
-      </h1>
+    <div className="w-full max-w-sm rounded-2xl border border-stone-200/80 bg-white p-10 shadow-sm">
+      <h1 className="mb-1 text-center font-heading text-2xl font-semibold text-stone-900">Área Admin</h1>
+      <p className="mb-6 text-center text-sm text-stone-500">Entre com a senha do painel</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">

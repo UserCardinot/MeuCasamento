@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 
-  let body: { nome?: string; acompanhantes?: string; contato?: string };
+  let body: { nome?: string; acompanhantes?: string; contato?: string; origem?: string };
   try {
     body = await request.json();
   } catch {
@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
   const guestToken = generateGuestToken();
   const acompanhantes = body?.acompanhantes?.trim() || "";
   const contato = body?.contato?.trim() || "";
+  const origem = body?.origem?.trim() || "";
   const data = new Date().toLocaleString("pt-BR");
 
   try {
-    await appendToSheet(sheetId, "Convidados!A:E", [
-      [guestToken, nome, acompanhantes, contato, data],
+    await appendToSheet(sheetId, "Convidados!A:F", [
+      [guestToken, nome, acompanhantes, contato, data, origem],
     ]);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";

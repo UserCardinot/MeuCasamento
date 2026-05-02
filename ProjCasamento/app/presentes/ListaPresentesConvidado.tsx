@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import FormPix from "./FormPix";
+import FormMercadoPago from "./FormMercadoPago";
 import QrCodePix from "./QrCodePix";
 
 type Presente = { nome: string; preco: string; url: string; imagem: string };
@@ -95,7 +96,9 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
 
       {presenteSelecionado && (
         <section className="mt-12 p-8 bg-white rounded-2xl shadow-sm border border-stone-100">
-          <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">Pagar com Pix</p>
+          <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">
+            Pix ou cartão
+          </p>
           <h2 className="font-heading text-xl font-light text-stone-800 mb-4">
             {presenteSelecionado.nome}
           </h2>
@@ -108,6 +111,11 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
             token={token}
             catalog={catalog}
             presentePreselecionado={presenteSelecionado.nome}
+          />
+          <FormMercadoPago
+            token={token}
+            presenteNome={presenteSelecionado.nome}
+            precoCatalogo={presenteSelecionado.preco}
           />
         </section>
       )}

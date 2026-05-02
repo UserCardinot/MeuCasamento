@@ -4,13 +4,22 @@ import { getConvidadoByToken, getPresenteRegistrado, getCatalogoPresentes } from
 import ListaPresentesConvidado from "./ListaPresentesConvidado";
 
 type Props = {
-  searchParams: Promise<{ token?: string | string[] }> | { token?: string | string[] };
+  searchParams:
+    | Promise<{ token?: string | string[]; mp?: string | string[] }>
+    | { token?: string | string[]; mp?: string | string[] };
 };
 
 export default async function PresentesPage({ searchParams }: Props) {
   const params = await searchParams;
   const raw = params?.token;
   const token = (typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined)
+    ?.toString()
+    .trim();
+
+  const rawMp = params?.mp;
+  const mpStatus = (
+    typeof rawMp === "string" ? rawMp : Array.isArray(rawMp) ? rawMp[0] : undefined
+  )
     ?.toString()
     .trim();
 
@@ -51,7 +60,26 @@ export default async function PresentesPage({ searchParams }: Props) {
 
         <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">Lista de presentes</p>
         <h1 className="font-heading text-3xl sm:text-4xl font-light text-stone-900 mb-4">Escolha seu presente</h1>
-        <p className="font-sans text-stone-600 mb-12">Olá, {nome}! Contribua com Pix.</p>
+        <p className="font-sans text-stone-600 mb-12">
+          Olá, {nome}! Contribua com Pix ou cartão (Mercado Pago).
+        </p>
+
+        {mpStatus === "success" && (
+          <div className="mb-8 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-900 text-sm">
+            Pagamento concluído ou em análise. Quando o Mercado Pago aprovar, sua contribuição aparecerá na
+            lista automaticamente.
+          </div>
+        )}
+        {mpStatus === "pending" && (
+          <div className="mb-8 p-4 rounded-2xl bg-amber-50 border border-amber-100 text-amber-900 text-sm">
+            Pagamento pendente. Assim que for confirmado, registraremos seu presente.
+          </div>
+        )}
+        {mpStatus === "failure" && (
+          <div className="mb-8 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-900 text-sm">
+            Não foi possível concluir o pagamento. Você pode tentar de novo ou usar o Pix.
+          </div>
+        )}
 
         <ListaPresentesConvidado
           token={token}

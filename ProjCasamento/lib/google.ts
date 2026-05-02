@@ -1,23 +1,73 @@
 /**
- * Integração com Google Sheets e Google Drive
- * Usa OAuth2 com refresh token para autenticação
+ * Integração com Google Sheets e Google Drive.
+ *
+ * Preferência: GOOGLE_SERVICE_ACCOUNT_JSON (JSON da service account completo) —
+ * não depende de refresh token de usuário; ideal pra produção (Vercel, meses de uso).
+ * Alternativa: GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET + GOOGLE_REFRESH_TOKEN (OAuth).
+ *
+ * Com service account: compartilhe a planilha e as pastas do Drive com o e-mail ...@....iam.gserviceaccount.com (Editor ou conforme necessário).
  */
 
 import { Readable } from "stream";
 import { google } from "googleapis";
+import type { JWT } from "google-auth-library";
+import type { OAuth2Client } from "google-auth-library";
 
-function getAuthClient() {
+const GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/drive.file",
+];
+
+let jwtClient: JWT | null = null;
+let oauthSingleton: OAuth2Client | null = null;
+
+async function getAuthClient(): Promise<JWT | OAuth2Client> {
+  const saRaw =
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ||
+    (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
+      ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64, "base64").toString("utf8")
+      : "");
+
+  if (saRaw) {
+    let creds: { client_email?: string; private_key?: string };
+    try {
+      creds = JSON.parse(saRaw) as { client_email?: string; private_key?: string };
+    } catch {
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON inválido: esperado JSON da service account");
+    }
+    if (!creds.client_email || !creds.private_key) {
+      throw new Error("JSON da service account deve ter client_email e private_key");
+    }
+    if (!jwtClient) {
+      jwtClient = new google.auth.JWT({
+        email: creds.client_email,
+        key: creds.private_key,
+        scopes: GOOGLE_SCOPES,
+      });
+      await jwtClient.authorize();
+    }
+    return jwtClient;
+  }
+
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
 
   if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Variáveis Google (CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN) não configuradas");
+    throw new Error(
+      "Google: defina GOOGLE_SERVICE_ACCOUNT_JSON (recomendado) ou GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN"
+    );
   }
 
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, "urn:ietf:wg:oauth:2.0:oob");
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  return oauth2Client;
+  if (!oauthSingleton) {
+    oauthSingleton = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      "urn:ietf:wg:oauth:2.0:oob"
+    );
+    oauthSingleton.setCredentials({ refresh_token: refreshToken });
+  }
+  return oauthSingleton;
 }
 
 /**
@@ -28,7 +78,7 @@ export async function appendToSheet(
   range: string,
   values: unknown[][]
 ): Promise<void> {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
@@ -45,7 +95,7 @@ export async function readFromSheet(
   sheetId: string,
   range: string
 ): Promise<unknown[][]> {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
@@ -55,14 +105,118 @@ export async function readFromSheet(
 }
 
 /**
+ * ID numérico da aba (para batchUpdate), pelo título exato.
+ */
+export async function getSheetIdByTitle(
+  spreadsheetId: string,
+  title: string
+): Promise<number | null> {
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const found = meta.data.sheets?.find((s) => s.properties?.title === title);
+  const id = found?.properties?.sheetId;
+  return id !== undefined && id !== null ? id : null;
+}
+
+/**
+ * Remove a linha do convidado na aba Convidados (A:F = token, nome, acompanhantes, contato, data, origem; linha 1 = cabeçalho).
+ * @param guestToken token na coluna A
+ */
+export async function deleteConvidadoRow(
+  spreadsheetId: string,
+  guestToken: string
+): Promise<"deleted" | "not_found"> {
+  const sheetTitle = "Convidados";
+  const sheetId = await getSheetIdByTitle(spreadsheetId, sheetTitle);
+  if (sheetId === null) {
+    throw new Error(`Aba "${sheetTitle}" não encontrada na planilha`);
+  }
+
+  const rows = await readFromSheet(spreadsheetId, `${sheetTitle}!A2:F`);
+  const tokenNorm = String(guestToken).trim().toLowerCase();
+  const idx = rows.findIndex(
+    (row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm
+  );
+  if (idx === -1) return "not_found";
+
+  // Linha 1 da planilha (índice 0) = cabeçalho; primeira linha de dados A2 = índice 1
+  const startIndex = idx + 1;
+
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex,
+              endIndex: startIndex + 1,
+            },
+          },
+        },
+      ],
+    },
+  });
+  return "deleted";
+}
+
+/**
+ * Atualiza nome, acompanhantes, contato e origem. Mantém token (col. A) e data de cadastro (col. E).
+ */
+export async function updateConvidadoRow(
+  spreadsheetId: string,
+  guestToken: string,
+  fields: { nome: string; acompanhantes: string; contato: string; origem: string }
+): Promise<"updated" | "not_found"> {
+  const sheetTitle = "Convidados";
+  const rows = await readFromSheet(spreadsheetId, `${sheetTitle}!A2:F`);
+  const tokenNorm = String(guestToken).trim().toLowerCase();
+  const idx = rows.findIndex(
+    (row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm
+  );
+  if (idx === -1) return "not_found";
+
+  const row = rows[idx] as unknown[];
+  const token = String(row[0] ?? "");
+  const dataCadastro = String(row[4] ?? "");
+
+  const newRow = [
+    token,
+    fields.nome.trim(),
+    fields.acompanhantes.trim(),
+    fields.contato.trim(),
+    dataCadastro,
+    fields.origem.trim(),
+  ];
+
+  const sheetRow = idx + 2;
+  const range = `${sheetTitle}!A${sheetRow}:F${sheetRow}`;
+
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [newRow] },
+  });
+  return "updated";
+}
+
+/**
  * Busca convidado pelo token na aba Convidados
- * Retorna a linha [token, nome, acompanhantes, contato, data] ou null
+ * Retorna a linha [token, nome, acompanhantes, contato, data, origem?] ou null
  */
 export async function getConvidadoByToken(token: string): Promise<string[] | null> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) return null;
 
-  const rows = await readFromSheet(sheetId, "Convidados!A2:E");
+  const rows = await readFromSheet(sheetId, "Convidados!A2:F");
   const tokenNorm = String(token).trim().toLowerCase();
   const found = rows.find((row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm);
   return found ? (found as string[]) : null;
@@ -154,7 +308,7 @@ export async function uploadToDrive(
   folderId: string,
   fileName: string
 ): Promise<string> {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   const drive = google.drive({ version: "v3", auth });
 
   const response = await drive.files.create({
