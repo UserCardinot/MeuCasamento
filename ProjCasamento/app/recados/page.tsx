@@ -1,18 +1,15 @@
-import { Suspense } from "react";
 import RecadosClient from "./RecadosClient";
 
-function RecadosFallback() {
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-24 bg-[#FAFAFA]">
-      <p className="font-sans text-stone-600">Carregando...</p>
-    </main>
-  );
+function pickParam(v: string | string[] | undefined): string {
+  if (v === undefined) return "";
+  return Array.isArray(v) ? (v[0] ?? "") : v;
 }
 
-export default function RecadosPage() {
-  return (
-    <Suspense fallback={<RecadosFallback />}>
-      <RecadosClient />
-    </Suspense>
-  );
+export default function RecadosPage({
+  searchParams,
+}: {
+  searchParams: { token?: string | string[] };
+}) {
+  const token = pickParam(searchParams.token);
+  return <RecadosClient token={token} />;
 }

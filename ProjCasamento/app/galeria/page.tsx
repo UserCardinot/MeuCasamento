@@ -1,18 +1,15 @@
-import { Suspense } from "react";
 import GaleriaClient from "./GaleriaClient";
 
-function GaleriaFallback() {
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-24 bg-[#FAFAFA]">
-      <p className="font-sans text-stone-600">Carregando...</p>
-    </main>
-  );
+function pickParam(v: string | string[] | undefined): string {
+  if (v === undefined) return "";
+  return Array.isArray(v) ? (v[0] ?? "") : v;
 }
 
-export default function GaleriaPage() {
-  return (
-    <Suspense fallback={<GaleriaFallback />}>
-      <GaleriaClient />
-    </Suspense>
-  );
+export default function GaleriaPage({
+  searchParams,
+}: {
+  searchParams: { eventToken?: string | string[] };
+}) {
+  const eventToken = pickParam(searchParams.eventToken);
+  return <GaleriaClient eventToken={eventToken} />;
 }

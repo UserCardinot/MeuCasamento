@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 
-export default function RecadosClient() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+export default function RecadosClient({ token }: { token: string }) {
   const [recados, setRecados] = useState<{ nome: string; mensagem: string; data: string }[]>([]);
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(true);

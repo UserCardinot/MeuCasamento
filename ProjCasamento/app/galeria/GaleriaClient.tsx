@@ -1,16 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 
 function extrairFileId(url: string): string | null {
   const m = url.match(/\/file\/d\/([^/]+)/);
   return m ? m[1] : null;
 }
 
-export default function GaleriaClient() {
-  const searchParams = useSearchParams();
-  const eventToken = searchParams.get("eventToken") || "";
+export default function GaleriaClient({ eventToken }: { eventToken: string }) {
   const [fotos, setFotos] = useState<{ nome: string; arquivo: string; data: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
