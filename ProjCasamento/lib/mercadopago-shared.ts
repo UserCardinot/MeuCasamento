@@ -4,8 +4,11 @@
 
 export function getPublicSiteBaseUrl(): string {
   const raw =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    (process.env.VERCEL_URL?.trim()
+      ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//i, "")}`
+      : "") ||
     "http://localhost:3000";
   return raw.replace(/\/$/, "");
 }

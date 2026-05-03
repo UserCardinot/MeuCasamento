@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { appendToSheet } from "@/lib/google";
 import { validateAdminSessionToken } from "@/lib/auth";
 import { generateGuestToken } from "@/lib/auth";
+import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -39,8 +40,7 @@ export async function POST(request: NextRequest) {
       [guestToken, nome, acompanhantes, contato, data, origem],
     ]);
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const link = `${baseUrl}/convite?token=${guestToken}`;
+    const link = `${getPublicSiteBaseUrl()}/convite?token=${guestToken}`;
 
     return NextResponse.json({
       sucesso: true,

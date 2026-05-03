@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { readFromSheet } from "@/lib/google";
 import { validateAdminSessionToken } from "@/lib/auth";
+import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -25,7 +26,7 @@ export async function GET() {
       readFromSheet(sheetId, "CatalogoPresentes!A2:E").catch(() => []),
     ]);
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = getPublicSiteBaseUrl();
 
     const convidadosFormatados = (convidados as (string | number)[][]).map((row) => ({
       token: String(row[0] ?? ""),
