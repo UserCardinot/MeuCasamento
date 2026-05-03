@@ -4,7 +4,11 @@ import { validateGuestToken } from "@/lib/auth";
 import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
 import StatusPresenca from "./StatusPresenca";
 import ContagemRegressiva from "./ContagemRegressiva";
+import { ConviteCapaImagem, ConviteLogoImagem } from "./ConviteImagens";
 import { EVENTO, getDataHoraConviteUppercase } from "@/lib/evento";
+
+const COLOSSENSES_3_14_NVI =
+  "Acima de tudo, porém, revistam-se do amor, que é o elo perfeito.";
 
 function Monograma({ a, b }: { a: string; b: string }) {
   return (
@@ -125,6 +129,18 @@ function ErroConvite({ mensagem, detalhe }: { mensagem: string; detalhe?: string
   );
 }
 
+/** Exibido em `ProjCasamento/public/convite/capa.*` até existir foto (nome padrão: capa.jpg). */
+function ConviteImagemPlaceholder() {
+  return (
+    <figure className="relative mx-auto mt-10 w-[min(15rem,78vw)] sm:w-[min(17rem,70vw)]">
+      <div className="aspect-[3/4] w-full border border-dashed border-invite-olive/30 bg-invite-olive/[0.04]" />
+      <figcaption className="font-invite-caps mt-3 text-center text-[0.5rem] font-medium uppercase tracking-[0.2em] text-invite-olive/55">
+        Sua foto aqui
+      </figcaption>
+    </figure>
+  );
+}
+
 export default async function ConvitePage({ searchParams }: Props) {
   const params = await searchParams;
   const raw = params?.token;
@@ -162,10 +178,46 @@ export default async function ConvitePage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-invite-cream">
-      <section className="px-4 py-10 sm:px-6 sm:py-14 lg:py-16" style={papelStyle}>
-        <div className="mx-auto max-w-md border border-invite-olive px-5 py-10 sm:px-8 sm:py-12">
-          <Monograma a={monograma[0]} b={monograma[1]} />
+      <section
+        className="flex min-h-[100svh] flex-col items-center justify-center px-5 py-12 sm:px-8"
+        style={papelStyle}
+      >
+        <div className="mx-auto flex w-full max-w-md flex-col items-center">
+          <ConviteLogoImagem
+            alt={`Casamento ${primeiro} & ${segundo}`}
+            fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+          />
+          <ConviteCapaImagem
+            alt={`${primeiro} e ${segundo}`}
+            fallback={<ConviteImagemPlaceholder />}
+          />
+          <blockquote className="mt-12 px-2 text-center">
+            <p className="font-heading text-[1rem] italic leading-relaxed text-invite-olive sm:text-[1.05rem]">
+              «{COLOSSENSES_3_14_NVI}»
+            </p>
+            <footer className="font-invite-caps mt-6 text-[0.55rem] font-medium uppercase tracking-[0.26em] text-invite-olive/85 sm:text-[0.58rem]">
+              Colossenses 3:14 · NVI
+            </footer>
+          </blockquote>
+          <div className="mt-14 flex flex-col items-center text-invite-olive/40" aria-hidden>
+            <svg width="20" height="28" viewBox="0 0 24 40" fill="none" className="opacity-70">
+              <path
+                d="M12 6v26M12 26l6-7M12 26l-6-7"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </section>
 
+      <section
+        className="flex min-h-[100svh] flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14"
+        style={papelStyle}
+      >
+        <div className="mx-auto w-full max-w-md border border-invite-olive px-5 py-10 sm:px-8 sm:py-12">
           <p className="font-invite-caps text-center text-[0.65rem] font-medium uppercase tracking-[0.35em] text-invite-olive sm:text-xs sm:tracking-[0.4em]">
             Com grande prazer
           </p>
@@ -188,15 +240,22 @@ export default async function ConvitePage({ searchParams }: Props) {
           <p className="font-invite-caps mx-auto mt-3 max-w-[16rem] text-center text-[0.62rem] font-medium uppercase leading-relaxed tracking-[0.12em] text-invite-olive/95 sm:max-w-[18rem] sm:text-[0.65rem]">
             {EVENTO.local.endereco}
           </p>
+        </div>
+      </section>
 
+      <section
+        className="flex min-h-[100svh] flex-col justify-center px-4 py-12 sm:px-6 sm:py-16"
+        style={papelStyle}
+      >
+        <div className="mx-auto w-full max-w-md border border-invite-olive px-5 py-10 sm:px-8 sm:py-12">
           {jaConfirmou && (
-            <div className="mt-10 border border-invite-olive/25 bg-white/50 px-4 py-5">
+            <div className="border border-invite-olive/25 bg-white/50 px-4 py-5">
               <StatusPresenca token={token} />
             </div>
           )}
 
           <nav
-            className="mt-12 flex flex-wrap justify-center gap-x-5 gap-y-10 sm:gap-x-8"
+            className={`flex flex-wrap justify-center gap-x-5 gap-y-10 sm:gap-x-8 ${jaConfirmou ? "mt-10" : ""}`}
             aria-label="Atalhos do convite"
           >
             <IconeCirculo href="/" rotulo="Site dos noivos">
@@ -226,7 +285,7 @@ export default async function ConvitePage({ searchParams }: Props) {
             >
               Deixar recado
             </Link>
-          </p> 
+          </p>
         </div>
       </section>
 
