@@ -111,6 +111,10 @@ export async function POST(request: NextRequest) {
         items: lineItems.items,
         external_reference: externalReference,
         statement_descriptor: "CASAMENTO",
+        payment_methods: {
+          installments: 12,
+          default_installments: 1,
+        },
         back_urls: backUrls,
         ...(sandbox
           ? {

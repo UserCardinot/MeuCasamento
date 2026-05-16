@@ -37,6 +37,13 @@ export default function AvisoCartaoTesteMP() {
           Cartão de teste gera: &quot;Uma das partes com as quais você está tentando efetuar o pagamento é de
           teste&quot;.
         </p>
+        <p className="mt-2 border-t border-amber-700/20 pt-2">
+          <strong>Botão &quot;Pagar&quot; cinza no checkout?</strong> Tente, nesta ordem:{" "}
+          <strong>Saldo em conta</strong>; ou &quot;Escolher outro meio&quot; e um cartão Nubank/outro banco (não só o
+          cartão Mercado Pago salvo); janela anônima sem extensões; presente com valor a partir de R$ 5. Se nada
+          funcionar, no app Mercado Pago do <strong>vendedor</strong> confira se a conta já pode receber pagamentos com
+          cartão (dados e conta bancária completos).
+        </p>
       </div>
     );
   }
