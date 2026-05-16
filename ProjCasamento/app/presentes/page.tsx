@@ -1,18 +1,33 @@
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { validateGuestToken } from "@/lib/auth";
 import { getConvidadoByToken, getPresenteRegistrado, getCatalogoPresentes } from "@/lib/google";
 import { EVENTO } from "@/lib/evento";
+import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
+import ConfirmarRetornoMP from "./ConfirmarRetornoMP";
 import ListaPresentesConvidado from "./ListaPresentesConvidado";
 import { presentesColuna, presentesCard, presentesLinkVoltar } from "./presentesTheme";
 
 export const dynamic = "force-dynamic";
 
-type Props = {
-  searchParams:
-    | Promise<{ token?: string | string[]; mp?: string | string[] }>
-    | { token?: string | string[]; mp?: string | string[] };
+type SearchParams = {
+  token?: string | string[];
+  mp?: string | string[];
+  payment_id?: string | string[];
+  collection_id?: string | string[];
+  status?: string | string[];
 };
+
+type Props = {
+  searchParams: Promise<SearchParams> | SearchParams;
+};
+
+function pickParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") return v.trim() || undefined;
+  if (Array.isArray(v)) return v[0]?.toString().trim() || undefined;
+  return undefined;
+}
 
 function ErroPresentes({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
@@ -47,12 +62,7 @@ export default async function PresentesPage({ searchParams }: Props) {
     ?.toString()
     .trim();
 
-  const rawMp = params?.mp;
-  const mpStatus = (
-    typeof rawMp === "string" ? rawMp : Array.isArray(rawMp) ? rawMp[0] : undefined
-  )
-    ?.toString()
-    .trim();
+  const mpStatus = pickParam(params?.mp);
 
   if (!token) {
     return <ErroPresentes mensagem="Link inválido." detalhe="Acesse através do link do seu convite." />;
@@ -66,6 +76,12 @@ export default async function PresentesPage({ searchParams }: Props) {
         detalhe="Entre em contato com os noivos se acredita que isso é um erro."
       />
     );
+  }
+
+  const paymentId =
+    pickParam(params?.payment_id) || pickParam(params?.collection_id);
+  if (mpStatus === "success" && paymentId) {
+    await registrarPagamentoMercadoPago(paymentId);
   }
 
   const [convidado, presenteRegistrado, catalogo] = await Promise.all([
@@ -95,14 +111,20 @@ export default async function PresentesPage({ searchParams }: Props) {
               {primeiro} & {segundo}
             </p>
             <p className="font-sans mx-auto mt-6 max-w-md text-sm leading-relaxed text-invite-olive/80 md:text-base">
-              Sua presença já é o maior presente. Se desejar contribuir, escolha um item abaixo — Pix ou cartão.
+              Sua presença já é o maior presente. Se desejar contribuir, escolha um ou mais itens abaixo — Pix ou cartão.
             </p>
           </header>
 
           {mpStatus === "success" && (
             <AvisoPagamento tipo="success">
-              Pagamento concluído ou em análise. Quando o Mercado Pago aprovar, sua contribuição aparecerá na lista
-              automaticamente.
+              <p className="font-medium">Pagamento aprovado no Mercado Pago.</p>
+              <p className="mt-2 text-invite-olive/85">
+                Ao voltar para esta página, sua contribuição é registrada na planilha automaticamente. Se ainda
+                vê a lista de presentes, aguarde alguns segundos ou recarregue.
+              </p>
+              <Suspense fallback={null}>
+                <ConfirmarRetornoMP token={token} mpStatus={mpStatus} />
+              </Suspense>
             </AvisoPagamento>
           )}
           {mpStatus === "pending" && (

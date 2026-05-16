@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatPrecoBRL } from "@/lib/presentes-checkout";
 import { presentesBtnPrimary, presentesFieldClass, presentesLabelClass } from "./presentesTheme";
 
 type Props = {
   token: string;
-  presenteNome: string;
-  precoCatalogo?: string;
+  presentesNomes: string[];
+  totalSugerido: number | null;
 };
 
-export default function FormPix({ token, presenteNome, precoCatalogo }: Props) {
+export default function FormPix({ token, presentesNomes, totalSugerido }: Props) {
   const router = useRouter();
   const [valor, setValor] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function FormPix({ token, presenteNome, precoCatalogo }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          presente: presenteNome.trim(),
+          presentes: presentesNomes,
           valor: valor.trim() ? valor.replace(/\D/g, "") : undefined,
         }),
       });
@@ -46,6 +47,11 @@ export default function FormPix({ token, presenteNome, precoCatalogo }: Props) {
       setLoading(false);
     }
   }
+
+  const placeholder =
+    totalSugerido != null
+      ? `Sugerido: R$ ${formatPrecoBRL(totalSugerido)}`
+      : "Ex.: 150,00";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 border-t border-invite-olive/20 pt-8">
@@ -68,7 +74,7 @@ export default function FormPix({ token, presenteNome, precoCatalogo }: Props) {
           type="text"
           value={valor}
           onChange={(e) => setValor(e.target.value)}
-          placeholder={precoCatalogo ? `Sugerido: R$ ${precoCatalogo.replace(".", ",")}` : "Ex.: 150,00"}
+          placeholder={placeholder}
           className={presentesFieldClass}
         />
       </div>

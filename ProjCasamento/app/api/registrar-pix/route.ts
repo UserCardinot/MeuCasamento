@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { appendToSheet } from "@/lib/google";
 import { validateGuestToken } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { formatPresentesRegistro, parsePresentesBody } from "@/lib/presentes-checkout";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -13,22 +14,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { token?: string; presente?: string; valor?: string };
+  let body: { token?: string; presente?: string; presentes?: string[]; valor?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   }
 
-  const { token, presente } = body;
+  const { token } = body;
+  const nomes = parsePresentesBody(body);
   let { valor } = body;
 
   if (!token || typeof token !== "string") {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
 
-  if (!presente || typeof presente !== "string" || !presente.trim()) {
-    return NextResponse.json({ erro: "Presente obrigatório" }, { status: 400 });
+  if (nomes.length === 0) {
+    return NextResponse.json({ erro: "Selecione ao menos um presente." }, { status: 400 });
   }
 
   const isValid = await validateGuestToken(token);
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = new Date().toLocaleString("pt-BR");
     await appendToSheet(sheetId, "Presentes!A:D", [
-      [token, presente.trim(), valor || "", data],
+      [token, formatPresentesRegistro(nomes), valor || "", data],
     ]);
     return NextResponse.json({ sucesso: true });
   } catch (err) {

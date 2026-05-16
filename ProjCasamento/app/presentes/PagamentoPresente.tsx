@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { formatPrecoBRL, somaPrecosCatalogo } from "@/lib/presentes-checkout";
 import PixPainel from "./PixPainel";
+import AvisoCartaoTesteMP from "./AvisoCartaoTesteMP";
 import FormMercadoPago from "./FormMercadoPago";
 
 type Presente = { nome: string; preco: string };
@@ -10,7 +12,7 @@ type MetodoPagamento = "pix" | "cartao" | "";
 
 type Props = {
   token: string;
-  presente: Presente;
+  presentes: Presente[];
 };
 
 function opcaoMetodoClass(ativo: boolean) {
@@ -44,8 +46,10 @@ function IconeCartao() {
   );
 }
 
-export default function PagamentoPresente({ token, presente }: Props) {
+export default function PagamentoPresente({ token, presentes }: Props) {
   const [metodo, setMetodo] = useState<MetodoPagamento>("");
+  const nomes = useMemo(() => presentes.map((p) => p.nome), [presentes]);
+  const totalSugerido = useMemo(() => somaPrecosCatalogo(presentes), [presentes]);
 
   return (
     <div className="space-y-8">
@@ -53,10 +57,20 @@ export default function PagamentoPresente({ token, presente }: Props) {
         <p className="font-invite-caps text-[0.68rem] font-medium uppercase tracking-[0.2em] text-invite-olive/75">
           Como deseja pagar?
         </p>
-        <h2 className="font-heading mt-2 text-xl italic text-invite-olive sm:text-2xl">{presente.nome}</h2>
-        {presente.preco && (
-          <p className="font-invite-caps mt-2 text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-invite-olive/85">
-            Valor sugerido: R$ {presente.preco.replace(".", ",")}
+        <h2 className="font-heading mt-2 text-xl italic text-invite-olive sm:text-2xl">
+          {presentes.length === 1 ? presentes[0]!.nome : `${presentes.length} presentes`}
+        </h2>
+        <ul className="font-sans mt-3 space-y-1 text-sm text-invite-olive/85">
+          {presentes.map((p) => (
+            <li key={p.nome}>
+              {p.nome}
+              {p.preco ? ` — R$ ${p.preco.replace(".", ",")}` : ""}
+            </li>
+          ))}
+        </ul>
+        {totalSugerido != null && (
+          <p className="font-invite-caps mt-3 text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-invite-olive/85">
+            Total sugerido: R$ {formatPrecoBRL(totalSugerido)}
           </p>
         )}
       </div>
@@ -93,23 +107,22 @@ export default function PagamentoPresente({ token, presente }: Props) {
       )}
 
       {metodo === "pix" && (
-        <PixPainel token={token} presenteNome={presente.nome} precoCatalogo={presente.preco} />
+        <PixPainel
+          token={token}
+          presentesNomes={nomes}
+          totalSugerido={totalSugerido}
+        />
       )}
 
       {metodo === "cartao" && (
         <div className="space-y-5 border-t border-invite-olive/20 pt-8">
           <p className="font-sans text-sm leading-relaxed text-invite-olive/75">
-            Você será direcionado ao checkout seguro do Mercado Pago para concluir o pagamento com cartão. O
-            presente é registrado automaticamente após a aprovação.
+            Você será direcionado ao checkout do Mercado Pago com{" "}
+            {presentes.length === 1 ? "este item" : "todos os itens"} — o valor total é a soma dos
+            presentes selecionados.
           </p>
-          {process.env.NODE_ENV === "development" && (
-            <p className="rounded-sm border border-amber-700/25 bg-amber-50/80 px-3 py-2 font-sans text-xs leading-relaxed text-amber-950/85">
-              Local: Access Token de <strong>teste</strong>, <code className="text-[0.7rem]">MERCADOPAGO_SANDBOX=true</code>
-              , cartões de teste do MP. Não use Public Key nem{" "}
-              <code className="text-[0.7rem]">NEXT_PUBLIC_SITE_URL</code> no .env.local.
-            </p>
-          )}
-          <FormMercadoPago token={token} presenteNome={presente.nome} />
+          <AvisoCartaoTesteMP />
+          <FormMercadoPago token={token} presentesNomes={nomes} totalSugerido={totalSugerido} />
         </div>
       )}
     </div>

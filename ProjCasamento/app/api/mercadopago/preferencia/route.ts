@@ -4,11 +4,16 @@ import { validateGuestToken } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getCatalogoPresentes } from "@/lib/google";
 import {
+  buildMercadoPagoLineItems,
+  parsePresentesBody,
+  resolvePresentesCatalogItems,
+} from "@/lib/presentes-checkout";
+import {
   buildExternalReference,
   canUseMercadoPagoAutoReturn,
   formatMercadoPagoApiError,
   getCheckoutBaseUrl,
-  resolveCheckoutAmount,
+  isMercadoPagoSandboxCheckoutUrl,
   resolveMercadoPagoInitPoint,
   shouldUseMercadoPagoSandbox,
 } from "@/lib/mercadopago-shared";
@@ -42,21 +47,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { token?: string; presente?: string; valor?: string };
+  let body: { token?: string; presente?: string; presentes?: string[]; valor?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   }
 
-  const { token, presente } = body;
-  const { valor } = body;
+  const { token } = body;
+  const nomes = parsePresentesBody(body);
 
   if (!token || typeof token !== "string") {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
-  if (!presente || typeof presente !== "string" || !presente.trim()) {
-    return NextResponse.json({ erro: "Presente obrigatório" }, { status: 400 });
+  if (nomes.length === 0) {
+    return NextResponse.json({ erro: "Selecione ao menos um presente." }, { status: 400 });
   }
 
   const isValid = await validateGuestToken(token);
@@ -65,23 +70,19 @@ export async function POST(request: NextRequest) {
   }
 
   const catalog = await getCatalogoPresentes();
-  const item = catalog.find((p) => p.nome.trim() === presente.trim());
-  if (!item) {
-    return NextResponse.json({ erro: "Presente não encontrado na lista." }, { status: 400 });
+  const resolved = resolvePresentesCatalogItems(catalog, nomes);
+  if ("error" in resolved) {
+    return NextResponse.json({ erro: resolved.error }, { status: 400 });
   }
 
-  const amountRes = resolveCheckoutAmount({
-    catalogPreco: item.preco,
-    valorDigitado: typeof valor === "string" ? valor : undefined,
-  });
-  if ("error" in amountRes) {
-    return NextResponse.json({ erro: amountRes.error }, { status: 400 });
+  const lineItems = buildMercadoPagoLineItems(resolved.items, itemIdFromTitle);
+  if ("error" in lineItems) {
+    return NextResponse.json({ erro: lineItems.error }, { status: 400 });
   }
-  const { amount } = amountRes;
 
   let externalReference: string;
   try {
-    externalReference = buildExternalReference(token, presente.trim());
+    externalReference = buildExternalReference(token, nomes);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Referência inválida";
     return NextResponse.json({ erro: msg }, { status: 400 });
@@ -96,44 +97,61 @@ export async function POST(request: NextRequest) {
     failure: `${base}/presentes?token=${tokenQ}&mp=failure`,
   };
 
+  const sandbox = shouldUseMercadoPagoSandbox(accessToken);
+  const testBuyerEmail = process.env.MERCADOPAGO_TEST_BUYER_EMAIL?.trim();
+
   const client = new MercadoPagoConfig({ accessToken });
   const preference = new Preference(client);
 
   try {
     const result = await preference.create({
       body: {
-        items: [
-          {
-            id: itemIdFromTitle(presente.trim()),
-            title: `Presente: ${presente.trim().slice(0, 200)}`,
-            quantity: 1,
-            currency_id: "BRL",
-            unit_price: amount,
-          },
-        ],
+        items: lineItems.items,
         external_reference: externalReference,
         statement_descriptor: "CASAMENTO",
         back_urls: backUrls,
+        ...(sandbox
+          ? {
+              payer: {
+                ...(testBuyerEmail ? { email: testBuyerEmail } : {}),
+                identification: { type: "CPF", number: "12345678909" },
+              },
+            }
+          : {}),
         ...(useAutoReturn ? { auto_return: "approved" as const } : {}),
         ...(useAutoReturn ? { notification_url: `${base}/api/webhooks/mercadopago` } : {}),
       },
     });
-
-    const sandbox = shouldUseMercadoPagoSandbox(accessToken);
     const initPoint = resolveMercadoPagoInitPoint(result, sandbox);
 
     if (!initPoint) {
-      console.error("Mercado Pago: preferência sem init_point", result.id);
+      console.error("Mercado Pago: preferência sem init_point", result.id, { sandbox });
+      const erroSandbox =
+        sandbox
+          ? "Checkout de teste indisponível. Confira MERCADOPAGO_ACCESS_TOKEN (credencial de teste) e MERCADOPAGO_SANDBOX=true."
+          : "Não foi possível abrir o checkout. Tente novamente.";
+      return NextResponse.json({ erro: erroSandbox }, { status: 502 });
+    }
+
+    if (sandbox && !isMercadoPagoSandboxCheckoutUrl(initPoint)) {
+      console.error("Mercado Pago: SANDBOX ativo mas URL de produção", initPoint);
       return NextResponse.json(
-        { erro: "Não foi possível abrir o checkout. Tente novamente." },
+        {
+          erro:
+            "Configuração de teste incorreta (URL de produção). Use Access Token de teste e MERCADOPAGO_SANDBOX=true.",
+        },
         { status: 502 }
       );
     }
+
+    const total = lineItems.items.reduce((s, it) => s + it.unit_price, 0);
 
     return NextResponse.json({
       init_point: initPoint,
       preference_id: result.id,
       sandbox,
+      total,
+      quantidade: nomes.length,
     });
   } catch (err) {
     const detalhe = formatMercadoPagoApiError(err);

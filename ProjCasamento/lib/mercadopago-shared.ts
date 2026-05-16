@@ -69,9 +69,18 @@ export function resolveMercadoPagoInitPoint(
   sandbox: boolean
 ): string | undefined {
   if (sandbox) {
-    return result.sandbox_init_point ?? result.init_point ?? undefined;
+    // Nunca usar init_point de produção no modo teste (gera "uma das partes é de teste")
+    return result.sandbox_init_point ?? undefined;
   }
-  return result.init_point ?? result.sandbox_init_point ?? undefined;
+  return result.init_point ?? undefined;
+}
+
+export function isMercadoPagoSandboxCheckoutUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.includes("sandbox.mercadopago");
+  } catch {
+    return false;
+  }
 }
 
 /** MP só aceita auto_return com back_urls.success em HTTPS público (não localhost). */
@@ -109,18 +118,39 @@ export function formatMercadoPagoApiError(err: unknown): string {
 
 const SEP = "|";
 
-/** Limite do MP para external_reference em preferências */
-export function buildExternalReference(token: string, presente: string): string {
-  const payload = Buffer.from(presente.trim(), "utf8").toString("base64url");
+function encodePresentesPayload(presentes: string[]): string {
+  const list = presentes.map((p) => p.trim()).filter(Boolean);
+  if (list.length === 0) throw new Error("Nenhum presente informado");
+  const json = list.length === 1 ? list[0]! : JSON.stringify(list);
+  return Buffer.from(json, "utf8").toString("base64url");
+}
+
+function decodePresentesPayload(decoded: string): string[] {
+  const t = decoded.trim();
+  if (!t) return [];
+  if (t.startsWith("[")) {
+    const arr = JSON.parse(t) as unknown;
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((x): x is string => typeof x === "string" && x.trim()).map((x) => x.trim());
+  }
+  return [t];
+}
+
+/** Limite do MP para external_reference em preferências (1 ou vários presentes). */
+export function buildExternalReference(token: string, presente: string | string[]): string {
+  const list = Array.isArray(presente) ? presente : [presente];
+  const payload = encodePresentesPayload(list);
   const ref = `${token.trim()}${SEP}${payload}`;
   if (ref.length > 256) {
-    throw new Error("Dados do presente excedem o limite para o checkout");
+    throw new Error("Muitos itens selecionados. Escolha menos presentes por pagamento.");
   }
   return ref;
 }
 
 export function parseExternalReference(ref: string | undefined): {
   token: string;
+  presentes: string[];
+  /** Primeiro item — compatível com código legado */
   presente: string;
 } | null {
   if (!ref || typeof ref !== "string") return null;
@@ -129,9 +159,10 @@ export function parseExternalReference(ref: string | undefined): {
   const token = ref.slice(0, i).trim();
   const enc = ref.slice(i + 1);
   try {
-    const presente = Buffer.from(enc, "base64url").toString("utf8");
-    if (!token || !presente.trim()) return null;
-    return { token, presente };
+    const decoded = Buffer.from(enc, "base64url").toString("utf8");
+    const presentes = decodePresentesPayload(decoded);
+    if (!token || presentes.length === 0) return null;
+    return { token, presentes, presente: presentes[0]! };
   } catch {
     return null;
   }

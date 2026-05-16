@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatPrecoBRL } from "@/lib/presentes-checkout";
 import CopiarChave from "./CopiarChave";
 import FormPix from "./FormPix";
 import { presentesCard } from "./presentesTheme";
 
 type Props = {
   token: string;
-  presenteNome: string;
-  precoCatalogo?: string;
+  presentesNomes: string[];
+  totalSugerido: number | null;
 };
 
-export default function PixPainel({ token, presenteNome, precoCatalogo }: Props) {
+export default function PixPainel({ token, presentesNomes, totalSugerido }: Props) {
   const [loading, setLoading] = useState(true);
   const [pix, setPix] = useState<{ qrDataUrl: string; chave: string | null } | null>(null);
   const [erro, setErro] = useState("");
@@ -64,6 +65,11 @@ export default function PixPainel({ token, presenteNome, precoCatalogo }: Props)
         <p className="font-invite-caps mb-4 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-invite-olive/80">
           1. Pague pelo Pix
         </p>
+        {totalSugerido != null && (
+          <p className="font-sans mb-4 text-sm text-invite-olive/80">
+            Valor sugerido (soma dos itens): R$ {formatPrecoBRL(totalSugerido)}
+          </p>
+        )}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className={`${presentesCard} mx-auto shrink-0 p-4 sm:mx-0`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -90,7 +96,7 @@ export default function PixPainel({ token, presenteNome, precoCatalogo }: Props)
         </div>
       </div>
 
-      <FormPix token={token} presenteNome={presenteNome} precoCatalogo={precoCatalogo} />
+      <FormPix token={token} presentesNomes={presentesNomes} totalSugerido={totalSugerido} />
     </div>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { formatPrecoBRL } from "@/lib/presentes-checkout";
 import { presentesBtnPrimary } from "./presentesTheme";
 
 type Props = {
   token: string;
-  presenteNome: string;
+  presentesNomes: string[];
+  totalSugerido: number | null;
 };
 
-export default function FormMercadoPago({ token, presenteNome }: Props) {
+export default function FormMercadoPago({ token, presentesNomes, totalSugerido }: Props) {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -21,7 +23,7 @@ export default function FormMercadoPago({ token, presenteNome }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          presente: presenteNome,
+          presentes: presentesNomes,
         }),
       });
       const data = await res.json();
@@ -44,6 +46,11 @@ export default function FormMercadoPago({ token, presenteNome }: Props) {
 
   return (
     <div className="space-y-4">
+      {totalSugerido != null && (
+        <p className="font-invite-caps text-center text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-invite-olive sm:text-left">
+          Total no checkout: R$ {formatPrecoBRL(totalSugerido)}
+        </p>
+      )}
       {erro && (
         <p className="font-sans text-sm text-red-700/90" role="alert">
           {erro}
