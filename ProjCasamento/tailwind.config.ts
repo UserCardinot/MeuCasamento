@@ -15,11 +15,13 @@ const config: Config = {
         "admin-heading": ["var(--font-admin-serif)", "Georgia", "serif"],
         "invite-caps": ["var(--font-invite-caps)", "Cinzel", "Georgia", "serif"],
         "invite-script": ["var(--font-invite-script)", "cursive"],
+        "noivos-script": ['"Luxurious Script"', "cursive"],
       },
       colors: {
         invite: {
           olive: "#4B5320",
-          cream: "#FDFDFB",
+          /** Papel do convite — off-white quente, levemente mais “papel” que branco puro */
+          cream: "#F0EBE1",
         },
         casamento: {
           "oliva-escuro": "#4A5D3A",

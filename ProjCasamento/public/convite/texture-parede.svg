@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Traços tipo rachadura / alvenaria esboçada: segmentos incompletos, sem blocos quadrados -->
+  <g stroke="#323a14" stroke-width="0.52" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <g opacity="0.34">
+      <path d="M6 24 Q42 21 71 26" />
+      <path d="M78 25 Q103 31 121 26" opacity="0.85"/>
+      <path d="M4 82 Q52 76 93 83" />
+      <path d="M99 80 Q116 78 124 85" opacity="0.75"/>
+      <path d="M38 34 L35 68" />
+      <path d="M88 14 Q84 38 91 58" />
+      <path d="M52 61 Q48 88 55 112" />
+      <path d="M110 48 L106 79" opacity="0.9"/>
+      <path d="M18 102 Q34 97 48 104" />
+      <path d="M64 98 Q82 92 98 100" opacity="0.8"/>
+      <path d="M12 56 Q22 48 30 58" />
+      <path d="M72 38 Q66 51 74 64" />
+      <path d="M24 118 L51 114" opacity="0.7"/>
+      <path d="M2 94 L14 91" />
+      <path d="M116 96 Q126 106 126 126" opacity="0.65"/>
+      <path d="M96 118 Q106 114 118 118" />
+    </g>
+    <g opacity="0.26">
+      <path d="M44 10 Q62 44 54 71" stroke-width="0.38"/>
+      <path d="M16 74 L22 88" stroke-width="0.38"/>
+      <path d="M84 108 Q92 118 106 126" stroke-width="0.38"/>
+      <path d="M58 126 Q70 118 76 126" stroke-width="0.38"/>
+    </g>
+    <g opacity="0.24" stroke-width="0.36">
+      <path d="M30 44 h18" />
+      <path d="M66 44 h22" />
+      <path d="M8 68 h14" opacity="0.8"/>
+      <path d="M94 18 h20" />
+      <path d="M104 64 v14" />
+      <path d="M46 86 h26" />
+    </g>
+  </g>
+</svg>

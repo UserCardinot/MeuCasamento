@@ -26,7 +26,7 @@ export default function StatusPresenca({ token }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl shadow-sm py-6 px-8 flex items-center justify-center gap-3 border border-stone-100">
+      <div className="bg-invite-cream rounded-2xl shadow-sm py-6 px-8 flex items-center justify-center gap-3 border border-invite-olive/15">
         <span className="text-casamento-oliva-escuro" aria-hidden>✓</span>
         <span className="font-sans font-medium text-stone-800">Sua presença está confirmada!</span>
       </div>

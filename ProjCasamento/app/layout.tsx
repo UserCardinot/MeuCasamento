@@ -49,6 +49,16 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${playfair.variable} ${jakarta.variable} ${cinzelInvite.variable} ${italiannoInvite.variable}`}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Luxurious Script: não exposto em next/font nesta versão; carregamento estável no <head>. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Luxurious+Script&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="font-sans antialiased min-h-screen bg-[#FAFAFA] text-stone-800">
         {children}
       </body>

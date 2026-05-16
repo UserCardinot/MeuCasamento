@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Luxurious Script (carregamento via <link> no layout) — garante uso nos nomes do convite */
+.font-nomes-noivos {
+  font-family: "Luxurious Script", ui-serif, cursive;
+}
+
+/* Papel off-white: vincos leves + grão; sem manchas escuras no meio (evita faixa atrás do texto). */
+.invite-wall-texture-bg {
+  background-color: #f0ebe1;
+  background-image:
+    url("/convite/texture-parede.svg"),
+    url("/convite/texture-papel-grao.svg"),
+    radial-gradient(ellipse 115% 90% at 50% -18%, rgba(255, 253, 248, 0.58) 0%, transparent 58%),
+    radial-gradient(ellipse 95% 70% at 0% 38%, rgba(255, 255, 252, 0.22) 0%, transparent 46%),
+    radial-gradient(ellipse 88% 80% at 100% 58%, rgba(247, 243, 232, 0.75) 0%, transparent 52%),
+    linear-gradient(176deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%, transparent 100%);
+  background-size:
+    128px 128px,
+    200px 200px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position:
+    0 0,
+    13px 37px,
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+  background-blend-mode: normal, soft-light, soft-light, soft-light, soft-light, normal;
+}

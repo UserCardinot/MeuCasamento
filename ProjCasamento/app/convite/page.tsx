@@ -4,19 +4,52 @@ import { validateGuestToken } from "@/lib/auth";
 import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
 import StatusPresenca from "./StatusPresenca";
 import ContagemRegressiva from "./ContagemRegressiva";
-import { ConviteCapaImagem, ConviteLogoImagem } from "./ConviteImagens";
+import { ConviteCapaTransicao, ConviteLogoImagem } from "./ConviteImagens";
 import { EVENTO, getDataHoraConviteUppercase } from "@/lib/evento";
 
 const COLOSSENSES_3_14_NVI =
-  "Acima de tudo, porém, revistam-se do amor, que é o elo perfeito.";
+  "Acima de tudo, porém, revistam\u2011se do amor, que é o elo perfeito.";
+
+const CONVITE_PIX = {
+  titular: "Lucas Cardinot da Silva",
+  chave: "lucascardinot2000@gmail.com",
+} as const;
+
+/** Largura máxima do convite (~lateral da folha A4: 210 mm). */
+const inviteColuna =
+  "mx-auto w-full max-w-[210mm] px-5 sm:px-8 md:px-10";
+
+const inviteAtalhoCirculoBtn =
+  "flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-invite-olive text-white shadow-sm transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-invite-olive sm:h-[4.25rem] sm:w-[4.25rem]";
+
+const inviteAtalhoRotulo =
+  "mt-2.5 max-w-[8.5rem] text-center font-invite-caps text-[0.82rem] font-medium uppercase leading-snug tracking-[0.1em] text-invite-olive sm:max-w-[9.5rem] sm:text-[0.9rem] sm:tracking-[0.12em] md:max-w-[10.5rem] md:text-[0.95rem]";
+
+function NomesNoivosTitulo({
+  primeiro,
+  segundo,
+  className = "",
+}: {
+  primeiro: string;
+  segundo: string;
+  className?: string;
+}) {
+  return (
+    <h1
+      className={`font-nomes-noivos w-full text-center leading-[1] text-invite-olive text-balance text-[clamp(4.25rem,14vw,7.75rem)] ${className}`}
+    >
+      {primeiro} <span className="text-[0.55em] font-normal">&amp;</span> {segundo}
+    </h1>
+  );
+}
 
 function Monograma({ a, b }: { a: string; b: string }) {
   return (
     <div
-      className="mx-auto mb-8 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border-[1.5px] border-invite-olive text-invite-olive sm:h-[5rem] sm:w-[5rem]"
+      className="mx-auto flex h-[7.5rem] w-[7.5rem] items-center justify-center rounded-full border-[1.5px] border-invite-olive text-invite-olive sm:h-[9.25rem] sm:w-[9.25rem] md:h-[9.75rem] md:w-[9.75rem]"
       aria-hidden
     >
-      <span className="font-invite-caps text-2xl font-semibold tracking-[-0.2em] sm:text-3xl">
+      <span className="font-invite-caps text-3xl font-semibold tracking-[-0.2em] sm:text-4xl md:text-[2.35rem]">
         <span className="inline-block translate-x-0.5">{a}</span>
         <span className="inline-block -translate-x-1">{b}</span>
       </span>
@@ -35,45 +68,37 @@ function IconeCirculo({
   rotulo: string;
   children: ReactNode;
 }) {
-  const classBtn =
-    "flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full bg-invite-olive text-white shadow-sm transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-invite-olive";
-  const classLabel =
-    "mt-2 max-w-[4.75rem] text-center font-invite-caps text-[0.55rem] font-medium uppercase leading-tight tracking-[0.12em] text-invite-olive sm:text-[0.6rem] sm:tracking-[0.14em]";
-
   const inner = (
     <>
-      <span className={classBtn}>{children}</span>
-      <span className={classLabel}>{rotulo}</span>
+      <span className={inviteAtalhoCirculoBtn}>{children}</span>
+      <span className={`${inviteAtalhoRotulo} flex min-h-[3.5rem] flex-col justify-center sm:min-h-[3.75rem]`}>
+        {rotulo}
+      </span>
     </>
   );
 
   if (externo) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex shrink-0 flex-col items-center"
+      >
         {inner}
       </a>
     );
   }
   return (
-    <Link href={href} className="flex flex-col items-center">
+    <Link href={href} className="flex shrink-0 flex-col items-center">
       {inner}
     </Link>
   );
 }
 
-function IconeGlobo() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.4" />
-      <ellipse cx="12" cy="12" rx="4" ry="9" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M3 12h18M12 3c2 3 2 15 0 18" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function IconeCheck() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M6 12.5l4 4 8-9"
         stroke="currentColor"
@@ -87,7 +112,7 @@ function IconeCheck() {
 
 function IconePresente() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M4 10h16v10H4V10z" stroke="currentColor" strokeWidth="1.4" />
       <path d="M12 10V20M4 10h16" stroke="currentColor" strokeWidth="1.4" />
       <path
@@ -102,7 +127,7 @@ function IconePresente() {
 
 function IconePin() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z"
         stroke="currentColor"
@@ -114,30 +139,71 @@ function IconePin() {
   );
 }
 
+/** Ícone alusivo ao Pix (carteira digital; não reproduz a marca oficial). */
+function IconePix() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 9h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M5 9V8a2 2 0 012-2h10a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M5 13h14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity={0.9} />
+      <circle cx="16.5" cy="14.5" r="1.35" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Mesmo layout dos atalhos circulares, sem link (apenas informativo). */
+function BlocoPixInformativo({ titular, chave }: { titular: string; chave: string }) {
+  return (
+    <div
+      className="flex max-w-[13rem] shrink-0 flex-col items-center sm:max-w-[15rem] md:max-w-[16.5rem]"
+      role="group"
+      aria-label={`Pix: titular ${titular}, chave ${chave}`}
+    >
+      <span className={`${inviteAtalhoCirculoBtn} pointer-events-none`}>
+        <IconePix />
+      </span>
+      <span className={`${inviteAtalhoRotulo} max-w-[13rem] sm:max-w-[15rem] md:max-w-[16.5rem]`}>
+        <span className="block text-center font-invite-caps text-[0.88rem] font-medium normal-case leading-snug tracking-[0.06em] text-invite-olive sm:text-[0.95rem] md:text-[1rem]">
+          {titular}
+        </span>
+        <span className="mt-2 block break-all font-sans text-[0.85rem] font-medium normal-case leading-snug tracking-normal text-invite-olive/95 sm:text-[0.92rem] md:text-[0.98rem]">
+          {chave}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 type Props = {
   searchParams: Promise<{ token?: string | string[] }> | { token?: string | string[] };
 };
 
 function ErroConvite({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-24 bg-invite-cream">
-      <div className="max-w-lg border border-invite-olive/80 px-8 py-12 text-center">
-        <p className="font-invite-caps text-invite-olive text-lg font-medium tracking-wide">{mensagem}</p>
-        {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
+    <main className="invite-wall-texture-bg flex min-h-screen flex-col items-center justify-center py-24">
+      <div className={inviteColuna}>
+        <div className="mx-auto max-w-lg border border-invite-olive/80 px-8 py-12 text-center">
+          <p className="font-invite-caps text-invite-olive text-lg font-medium tracking-wide">{mensagem}</p>
+          {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
+        </div>
       </div>
     </main>
   );
 }
 
-/** Exibido em `ProjCasamento/public/convite/capa.*` até existir foto (nome padrão: capa.jpg). */
-function ConviteImagemPlaceholder() {
+/** Rodapé inteiro da página 1 até existir `public/convite/capa.jpg` (ou NEXT_PUBLIC_CONVITE_CAPA). */
+function ConviteCapaPlaceholder() {
   return (
-    <figure className="relative mx-auto mt-10 w-[min(15rem,78vw)] sm:w-[min(17rem,70vw)]">
-      <div className="aspect-[3/4] w-full border border-dashed border-invite-olive/30 bg-invite-olive/[0.04]" />
-      <figcaption className="font-invite-caps mt-3 text-center text-[0.5rem] font-medium uppercase tracking-[0.2em] text-invite-olive/55">
-        Sua foto aqui
-      </figcaption>
-    </figure>
+    <div className="flex h-full w-full flex-col items-center justify-center border-t border-dashed border-invite-olive/35 bg-invite-olive/[0.04] px-6 py-16">
+      <p className="font-invite-caps max-w-[13rem] text-center text-[0.5rem] font-medium uppercase leading-relaxed tracking-[0.18em] text-invite-olive/55">
+        Foto de transição para a próxima página — coloque capa.jpg em public/convite
+      </p>
+    </div>
   );
 }
 
@@ -170,128 +236,158 @@ export default async function ConvitePage({ searchParams }: Props) {
   const jaConfirmou = presenca?.confirmado === true;
 
   const { primeiro, segundo, monograma } = EVENTO.noivos;
-  const papelStyle = {
-    backgroundColor: "#FDFDFB",
-    backgroundImage:
-      "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(75,83,32,0.025) 3px, rgba(75,83,32,0.025) 4px)",
-  };
-
   return (
-    <main className="min-h-screen bg-invite-cream">
-      <section
-        className="flex min-h-[100svh] flex-col items-center justify-center px-5 py-12 sm:px-8"
-        style={papelStyle}
-      >
-        <div className="mx-auto flex w-full max-w-md flex-col items-center">
-          <ConviteLogoImagem
-            alt={`Casamento ${primeiro} & ${segundo}`}
-            fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
-          />
-          <ConviteCapaImagem
-            alt={`${primeiro} e ${segundo}`}
-            fallback={<ConviteImagemPlaceholder />}
-          />
-          <blockquote className="mt-12 px-2 text-center">
-            <p className="font-heading text-[1rem] italic leading-relaxed text-invite-olive sm:text-[1.05rem]">
-              «{COLOSSENSES_3_14_NVI}»
-            </p>
-            <footer className="font-invite-caps mt-6 text-[0.55rem] font-medium uppercase tracking-[0.26em] text-invite-olive/85 sm:text-[0.58rem]">
-              Colossenses 3:14 · NVI
-            </footer>
-          </blockquote>
-          <div className="mt-14 flex flex-col items-center text-invite-olive/40" aria-hidden>
-            <svg width="20" height="28" viewBox="0 0 24 40" fill="none" className="opacity-70">
-              <path
-                d="M12 6v26M12 26l6-7M12 26l-6-7"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="flex min-h-[100svh] flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14"
-        style={papelStyle}
-      >
-        <div className="mx-auto w-full max-w-md border border-invite-olive px-5 py-10 sm:px-8 sm:py-12">
-          <p className="font-invite-caps text-center text-[0.65rem] font-medium uppercase tracking-[0.35em] text-invite-olive sm:text-xs sm:tracking-[0.4em]">
-            Com grande prazer
-          </p>
-
-          <h1 className="font-invite-script mt-5 text-center text-[2.35rem] leading-none text-invite-olive sm:text-[2.85rem]">
-            {primeiro} <span className="text-[0.55em] font-normal">&amp;</span> {segundo}
-          </h1>
-
-          <p className="font-invite-caps mx-auto mt-8 max-w-[17rem] text-center text-[0.7rem] font-medium uppercase leading-relaxed tracking-[0.18em] text-invite-olive sm:max-w-none sm:text-[0.72rem] sm:tracking-[0.2em]">
-            Convidam você para celebrar o nosso casamento
-          </p>
-
-          <p className="font-invite-caps mt-8 text-center text-[0.68rem] font-medium uppercase leading-relaxed tracking-[0.14em] text-invite-olive sm:text-[0.72rem] sm:tracking-[0.16em]">
-            {getDataHoraConviteUppercase()}
-          </p>
-
-          <p className="font-invite-caps mt-10 text-center text-sm font-semibold uppercase tracking-[0.22em] text-invite-olive sm:text-base sm:tracking-[0.26em]">
-            {EVENTO.local.nome}
-          </p>
-          <p className="font-invite-caps mx-auto mt-3 max-w-[16rem] text-center text-[0.62rem] font-medium uppercase leading-relaxed tracking-[0.12em] text-invite-olive/95 sm:max-w-[18rem] sm:text-[0.65rem]">
-            {EVENTO.local.endereco}
-          </p>
-        </div>
-      </section>
-
-      <section
-        className="flex min-h-[100svh] flex-col justify-center px-4 py-12 sm:px-6 sm:py-16"
-        style={papelStyle}
-      >
-        <div className="mx-auto w-full max-w-md border border-invite-olive px-5 py-10 sm:px-8 sm:py-12">
-          {jaConfirmou && (
-            <div className="border border-invite-olive/25 bg-white/50 px-4 py-5">
-              <StatusPresenca token={token} />
+    <main className="invite-wall-texture-bg min-h-screen">
+      <div className={`${inviteColuna} relative`}>
+        {/* Moldura lateral/inferior (atrás do conteúdo). Sem border-top: o fundo do conteúdo cobria o traço no meio. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-4 right-4 top-4 z-[5] border-x border-b border-invite-olive sm:inset-x-0 sm:top-5 md:top-6"
+        />
+        {/* Traço superior contínuo, por cima do fundo das seções */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-4 right-4 top-4 z-[12] h-px bg-invite-olive sm:inset-x-0 sm:top-5 md:top-6"
+        />
+        <div className="invite-wall-texture-bg relative z-10 flex flex-col">
+          <section className="flex min-h-[100svh] w-full max-w-none flex-col">
+            <div className="flex min-h-0 w-full flex-1 flex-col justify-center pb-0">
+              <div className="flex w-full translate-y-5 flex-col items-center sm:translate-y-6 md:translate-y-7">
+                <header className="flex w-full shrink-0 flex-col items-center gap-3 sm:gap-4 md:gap-5">
+                  <ConviteLogoImagem
+                    alt={`Casamento ${primeiro} & ${segundo}`}
+                    fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+                  />
+                  <NomesNoivosTitulo primeiro={primeiro} segundo={segundo} className="w-full px-1" />
+                </header>
+                <div className="mx-auto flex w-full max-w-full shrink-0 flex-col items-center px-0 pt-4 sm:max-w-xl sm:pt-5 md:max-w-3xl md:pt-6">
+                  <blockquote className="mx-auto w-full max-w-[30rem] shrink-0 px-1 text-center sm:max-w-xl md:max-w-xl sm:px-3">
+                    <p className="font-heading text-[1.38rem] italic leading-snug text-invite-olive sm:text-[1.52rem] md:text-[1.65rem] sm:leading-relaxed">
+                      {"\u201c"}
+                      {COLOSSENSES_3_14_NVI}
+                      {"\u201d"}
+                    </p>
+                    <footer className="font-invite-caps mt-6 text-[1.12rem] font-medium uppercase tracking-[0.22em] text-invite-olive sm:text-[1.28rem] sm:tracking-[0.24em] md:text-[1.38rem]">
+                      Colossenses 3:14
+                    </footer>
+                  </blockquote>
+                  <div className="mt-4 flex shrink-0 flex-col items-center text-invite-olive/40 sm:mt-5" aria-hidden>
+                    <svg width="20" height="28" viewBox="0 0 24 40" fill="none" className="opacity-70">
+                      <path
+                        d="M12 6v26M12 26l6-7M12 26l-6-7"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
+            <ConviteCapaTransicao
+              alt={`${primeiro} e ${segundo}`}
+              fallback={<ConviteCapaPlaceholder />}
+            />
+          </section>
 
-          <nav
-            className={`flex flex-wrap justify-center gap-x-5 gap-y-10 sm:gap-x-8 ${jaConfirmou ? "mt-10" : ""}`}
-            aria-label="Atalhos do convite"
-          >
-            <IconeCirculo href="/" rotulo="Site dos noivos">
-              <IconeGlobo />
-            </IconeCirculo>
-            <IconeCirculo href={`/confirmacao?token=${encodeURIComponent(token)}`} rotulo="Confirmação">
-              <IconeCheck />
-            </IconeCirculo>
-            <IconeCirculo href={`/presentes?token=${encodeURIComponent(token)}`} rotulo="Lista de presentes">
-              <IconePresente />
-            </IconeCirculo>
-            {EVENTO.local.mapUrl ? (
-              <IconeCirculo href={EVENTO.local.mapUrl} externo rotulo="Como chegar">
-                <IconePin />
-              </IconeCirculo>
-            ) : null}
-          </nav>
+          <section className="flex flex-col items-center justify-start pt-4 pb-4 sm:pt-5 sm:pb-5 md:pt-6">
+            <div className="w-full pb-2 sm:pb-3">
+              <ConviteLogoImagem
+                alt={`Casamento ${primeiro} & ${segundo}`}
+                fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+              />
+              <div className="mt-4 flex w-full flex-col items-center sm:mt-5">
+                <span
+                  className="mb-1.5 block h-1.5 w-1.5 shrink-0 rounded-full bg-invite-olive/45 sm:mb-2"
+                  aria-hidden
+                />
+                <ContagemRegressiva variant="invite" compact />
+                <span
+                  className="mt-3 mb-5 block h-1.5 w-1.5 shrink-0 rounded-full bg-invite-olive/45 sm:mt-4 sm:mb-6"
+                  aria-hidden
+                />
+              </div>
+              <p className="font-invite-caps text-center text-[1.28rem] font-bold uppercase tracking-[0.16em] text-invite-olive sm:text-[1.42rem] sm:tracking-[0.18em] md:text-[1.55rem]">
+                Com grande prazer
+              </p>
 
-          <p className="font-invite-caps mx-auto mt-10 max-w-[15rem] text-center text-[0.55rem] font-medium uppercase leading-relaxed tracking-[0.2em] text-invite-olive/75 sm:max-w-none sm:text-[0.58rem]">
-            Clique nos ícones acima para ser redirecionado.
-          </p>
+              <p className="font-invite-caps mx-auto mt-8 max-w-[22rem] text-center text-[1.05rem] font-medium uppercase leading-relaxed tracking-[0.14em] text-invite-olive sm:max-w-[26rem] sm:text-[1.18rem] sm:tracking-[0.16em] md:max-w-[28rem] md:text-[1.28rem]">
+                Convidam você para celebrar o nosso casamento
+              </p>
 
-          <p className="mt-6 text-center">
-            <Link
-              href={`/recados?token=${encodeURIComponent(token)}`}
-              className="font-invite-caps text-[0.58rem] font-medium uppercase tracking-[0.2em] text-invite-olive/80 underline-offset-4 hover:text-invite-olive hover:underline"
-            >
-              Deixar recado
-            </Link>
-          </p>
+              <p className="font-invite-caps mt-8 text-center text-[1rem] font-medium uppercase leading-relaxed tracking-[0.12em] text-invite-olive sm:text-[1.12rem] sm:tracking-[0.14em] md:text-[1.2rem]">
+                {getDataHoraConviteUppercase()}
+              </p>
+
+              <p className="font-invite-caps mt-10 text-center text-[1.28rem] font-bold uppercase tracking-[0.16em] text-invite-olive sm:text-[1.42rem] sm:tracking-[0.18em] md:text-[1.55rem]">
+                {EVENTO.local.nome}
+              </p>
+              <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.92rem] font-medium uppercase leading-relaxed tracking-[0.1em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[1.02rem] md:max-w-[26rem] md:text-[1.08rem]">
+                {EVENTO.local.endereco}
+              </p>
+            </div>
+          </section>
+
+          <section className="flex flex-col justify-start pt-2 pb-10 sm:pt-3 sm:pb-12">
+            <div className="w-full py-4 sm:py-6">
+              {jaConfirmou && (
+                <div className="border border-invite-olive/25 bg-invite-cream/70 px-4 py-5">
+                  <StatusPresenca token={token} />
+                </div>
+              )}
+
+              <div
+                className={`mx-auto w-full max-w-[24rem] sm:max-w-[26rem] md:max-w-[28rem] ${jaConfirmou ? "mt-10" : ""}`}
+              >
+                <div
+                  role="navigation"
+                  aria-label="Atalhos do convite e dados do Pix"
+                  className="flex flex-col items-stretch gap-y-9 sm:gap-y-10"
+                >
+                  <div
+                    className={
+                      EVENTO.local.mapUrl
+                        ? "grid w-full grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-4"
+                        : "grid w-full grid-cols-2 gap-x-3 sm:gap-x-5"
+                    }
+                  >
+                    <div className="flex min-w-0 justify-center">
+                      <IconeCirculo href={`/confirmacao?token=${encodeURIComponent(token)}`} rotulo="Confirmar presença">
+                        <IconeCheck />
+                      </IconeCirculo>
+                    </div>
+                    <div className="flex min-w-0 justify-center">
+                      <IconeCirculo href={`/presentes?token=${encodeURIComponent(token)}`} rotulo="Lista de presentes">
+                        <IconePresente />
+                      </IconeCirculo>
+                    </div>
+                    {EVENTO.local.mapUrl ? (
+                      <div className="flex min-w-0 justify-center">
+                        <IconeCirculo href={EVENTO.local.mapUrl} externo rotulo="Como chegar">
+                          <IconePin />
+                        </IconeCirculo>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="flex w-full justify-center pt-1 sm:pt-2">
+                    <BlocoPixInformativo titular={CONVITE_PIX.titular} chave={CONVITE_PIX.chave} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-10 flex justify-center sm:mt-12">
+                <Link
+                  href={`/recados?token=${encodeURIComponent(token)}`}
+                  className="inline-flex min-h-[3.5rem] min-w-[12.5rem] items-center justify-center rounded-full border-2 border-invite-olive bg-invite-olive px-10 py-3.5 font-invite-caps text-[0.95rem] font-semibold uppercase tracking-[0.14em] text-white shadow-md transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-invite-olive sm:min-h-[3.75rem] sm:min-w-[14rem] sm:px-12 sm:text-[1.02rem] sm:tracking-[0.16em] md:text-[1.08rem]"
+                >
+                  Deixar recado
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
-
-      <section className="border-t border-invite-olive/15 bg-invite-cream px-6 py-14 sm:px-10 sm:py-20">
-        <ContagemRegressiva variant="invite" />
-      </section>
+      </div>
     </main>
   );
 }
