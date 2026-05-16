@@ -41,7 +41,7 @@ export function getCheckoutBaseUrl(request?: { headers: Headers }): string {
     const hostname = host.split(":")[0];
     if (isLocalHostname(hostname)) {
       const proto =
-        request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
+        request?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
       return `${proto}://${host}`.replace(/\/$/, "");
     }
   }
@@ -131,7 +131,9 @@ function decodePresentesPayload(decoded: string): string[] {
   if (t.startsWith("[")) {
     const arr = JSON.parse(t) as unknown;
     if (!Array.isArray(arr)) return [];
-    return arr.filter((x): x is string => typeof x === "string" && x.trim()).map((x) => x.trim());
+    return arr
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim());
   }
   return [t];
 }

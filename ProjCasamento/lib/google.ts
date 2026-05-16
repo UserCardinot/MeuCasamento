@@ -248,7 +248,7 @@ function parseConfirmadoCol(val: unknown): boolean {
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{M}/gu, "");
+    .replace(/[\u0300-\u036f]/g, "");
   return col === "sim" || col.startsWith("sim ") || col.includes("estarei");
 }
 
