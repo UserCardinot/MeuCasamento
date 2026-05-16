@@ -47,6 +47,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${playfair.variable} ${jakarta.variable} ${cinzelInvite.variable} ${italiannoInvite.variable}`}
     >
       <head>
@@ -59,7 +60,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased min-h-screen bg-[#FAFAFA] text-stone-800">
+      <body
+        suppressHydrationWarning
+        className="font-sans antialiased min-h-screen bg-[#FAFAFA] text-stone-800"
+      >
         {children}
       </body>
     </html>

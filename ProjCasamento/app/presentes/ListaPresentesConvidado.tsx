@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import FormPix from "./FormPix";
-import FormMercadoPago from "./FormMercadoPago";
-import QrCodePix from "./QrCodePix";
+import PagamentoPresente from "./PagamentoPresente";
+import { presentesBtnOutline, presentesBtnPrimary, presentesCard } from "./presentesTheme";
 
 type Presente = { nome: string; preco: string; url: string; imagem: string };
 
@@ -18,13 +17,31 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
 
   if (presenteRegistrado) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm py-6 px-8 mb-12 flex items-center gap-3 border border-stone-100">
-        <span className="text-casamento-oliva-escuro text-xl" aria-hidden>✓</span>
+      <div
+        className={`${presentesCard} flex flex-col items-center gap-3 px-6 py-8 text-center sm:flex-row sm:text-left`}
+        role="status"
+      >
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-invite-olive text-invite-olive"
+          aria-hidden
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M6 12.5l4 4 8-9"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
         <div>
-          <p className="font-sans font-medium text-stone-800">Você já registrou sua contribuição</p>
-          <p className="font-sans text-stone-600 text-sm mt-0.5">
+          <p className="font-invite-caps text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-invite-olive">
+            Contribuição registrada
+          </p>
+          <p className="font-sans mt-1 text-sm text-invite-olive/85">
             {presenteRegistrado.presente}
-            {presenteRegistrado.valor && ` – R$ ${presenteRegistrado.valor}`}
+            {presenteRegistrado.valor && ` — R$ ${presenteRegistrado.valor.replace(".", ",")}`}
           </p>
         </div>
       </div>
@@ -33,40 +50,44 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
 
   if (catalog.length === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-stone-600">
-        <p>Nenhum presente cadastrado no momento.</p>
-        <p className="text-sm mt-2">Os noivos em breve disponibilizarão a lista.</p>
+      <div className={`${presentesCard} px-8 py-14 text-center`}>
+        <p className="font-heading text-lg italic text-invite-olive">Em breve</p>
+        <p className="font-sans mt-3 text-sm text-invite-olive/75">
+          Os noivos ainda estão organizando a lista. Volte em alguns dias.
+        </p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {catalog.map((p, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow transition-all duration-200"
-          >
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+        {catalog.map((p, i) => {
+          const selecionado = presenteSelecionado?.nome === p.nome;
+          return (
+            <article
+              key={`${p.nome}-${i}`}
+              className={`flex flex-col overflow-hidden border transition-shadow ${
+                selecionado
+                  ? "border-invite-olive/50 bg-white/90 shadow-md ring-1 ring-invite-olive/20"
+                  : "border-invite-olive/25 bg-white/70 hover:border-invite-olive/40 hover:shadow-sm"
+              }`}
+            >
               {p.imagem && (
                 <a
                   href={p.url || p.imagem}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block aspect-video bg-stone-100"
+                  className="block aspect-[4/3] border-b border-invite-olive/15 bg-invite-cream/50"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.imagem}
-                    alt={p.nome}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={p.imagem} alt={p.nome} className="h-full w-full object-cover" />
                 </a>
               )}
-              <div className="p-5">
-                <h3 className="font-heading font-medium text-stone-800 text-lg">{p.nome}</h3>
+              <div className="flex flex-1 flex-col p-5 sm:p-6">
+                <h3 className="font-heading text-lg italic leading-snug text-invite-olive sm:text-xl">{p.nome}</h3>
                 {p.preco && (
-                  <p className="font-sans text-casamento-oliva-escuro font-semibold mt-2">
+                  <p className="font-invite-caps mt-2 text-[0.85rem] font-semibold uppercase tracking-[0.12em] text-invite-olive/90">
                     R$ {p.preco.replace(".", ",")}
                   </p>
                 )}
@@ -75,47 +96,33 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
                     href={p.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-sans text-sm text-casamento-oliva-escuro hover:underline mt-2 inline-block font-medium"
+                    className="font-invite-caps mt-3 inline-block text-[0.68rem] font-medium uppercase tracking-[0.14em] text-invite-olive/75 underline-offset-4 hover:text-invite-olive hover:underline"
                   >
-                    Ver produto →
+                    Ver na loja
                   </a>
                 )}
                 <button
                   type="button"
-                  onClick={() =>
-                    setPresenteSelecionado(presenteSelecionado?.nome === p.nome ? null : p)
-                  }
-                  className="mt-4 w-full py-3 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
+                  onClick={() => setPresenteSelecionado(selecionado ? null : p)}
+                  className={`mt-5 ${selecionado ? presentesBtnOutline : presentesBtnPrimary}`}
                 >
-                  {presenteSelecionado?.nome === p.nome ? "Fechar" : "Contribuir"}
+                  {selecionado ? "Fechar" : "Contribuir"}
                 </button>
               </div>
-            </div>
-          ))}
+            </article>
+          );
+        })}
       </div>
 
       {presenteSelecionado && (
-        <section className="mt-12 p-8 bg-white rounded-2xl shadow-sm border border-stone-100">
-          <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">
-            Pix ou cartão
-          </p>
-          <h2 className="font-heading text-xl font-light text-stone-800 mb-4">
-            {presenteSelecionado.nome}
-          </h2>
-          <p className="text-stone-600 text-sm mb-4">
-            Escaneie o QR Code ou copie a chave. Depois clique em &quot;Já fiz o Pix&quot; para registrar.
-          </p>
-          <QrCodePix />
-          <FormPix
+        <section className={`${presentesCard} mt-10 px-6 py-8 sm:px-8 sm:py-10`}>
+          <PagamentoPresente
             key={presenteSelecionado.nome}
             token={token}
-            catalog={catalog}
-            presentePreselecionado={presenteSelecionado.nome}
-          />
-          <FormMercadoPago
-            token={token}
-            presenteNome={presenteSelecionado.nome}
-            precoCatalogo={presenteSelecionado.preco}
+            presente={{
+              nome: presenteSelecionado.nome,
+              preco: presenteSelecionado.preco,
+            }}
           />
         </section>
       )}

@@ -5,8 +5,12 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { getCatalogoPresentes } from "@/lib/google";
 import {
   buildExternalReference,
-  getPublicSiteBaseUrl,
+  canUseMercadoPagoAutoReturn,
+  formatMercadoPagoApiError,
+  getCheckoutBaseUrl,
   resolveCheckoutAmount,
+  resolveMercadoPagoInitPoint,
+  shouldUseMercadoPagoSandbox,
 } from "@/lib/mercadopago-shared";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +25,7 @@ function itemIdFromTitle(title: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
   if (!accessToken) {
     return NextResponse.json(
       { erro: "Pagamento com cartão não configurado (MERCADOPAGO_ACCESS_TOKEN)." },
@@ -83,8 +87,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: msg }, { status: 400 });
   }
 
-  const base = getPublicSiteBaseUrl();
+  const base = getCheckoutBaseUrl(request);
   const tokenQ = encodeURIComponent(token.trim());
+  const useAutoReturn = canUseMercadoPagoAutoReturn(base);
+  const backUrls = {
+    success: `${base}/presentes?token=${tokenQ}&mp=success`,
+    pending: `${base}/presentes?token=${tokenQ}&mp=pending`,
+    failure: `${base}/presentes?token=${tokenQ}&mp=failure`,
+  };
 
   const client = new MercadoPagoConfig({ accessToken });
   const preference = new Preference(client);
@@ -103,18 +113,14 @@ export async function POST(request: NextRequest) {
         ],
         external_reference: externalReference,
         statement_descriptor: "CASAMENTO",
-        back_urls: {
-          success: `${base}/presentes?token=${tokenQ}&mp=success`,
-          pending: `${base}/presentes?token=${tokenQ}&mp=pending`,
-          failure: `${base}/presentes?token=${tokenQ}&mp=failure`,
-        },
-        auto_return: "approved",
-        notification_url: `${base}/api/webhooks/mercadopago`,
+        back_urls: backUrls,
+        ...(useAutoReturn ? { auto_return: "approved" as const } : {}),
+        ...(useAutoReturn ? { notification_url: `${base}/api/webhooks/mercadopago` } : {}),
       },
     });
 
-    const isTest = accessToken.startsWith("TEST-");
-    const initPoint = isTest ? result.sandbox_init_point : result.init_point;
+    const sandbox = shouldUseMercadoPagoSandbox(accessToken);
+    const initPoint = resolveMercadoPagoInitPoint(result, sandbox);
 
     if (!initPoint) {
       console.error("Mercado Pago: preferência sem init_point", result.id);
@@ -124,12 +130,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ init_point: initPoint, preference_id: result.id });
+    return NextResponse.json({
+      init_point: initPoint,
+      preference_id: result.id,
+      sandbox,
+    });
   } catch (err) {
-    console.error("Mercado Pago preferência:", err);
-    return NextResponse.json(
-      { erro: "Erro ao criar pagamento. Tente novamente." },
-      { status: 502 }
-    );
+    const detalhe = formatMercadoPagoApiError(err);
+    console.error("Mercado Pago preferência:", detalhe, err);
+    const msg =
+      process.env.NODE_ENV === "development"
+        ? detalhe
+        : "Erro ao criar pagamento. Tente novamente.";
+    return NextResponse.json({ erro: msg }, { status: 502 });
   }
 }

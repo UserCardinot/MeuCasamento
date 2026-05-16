@@ -2,29 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-type Presente = { nome: string; preco: string; url: string; imagem: string };
+import { presentesBtnPrimary, presentesFieldClass, presentesLabelClass } from "./presentesTheme";
 
 type Props = {
   token: string;
-  catalog: Presente[];
-  presentePreselecionado?: string;
+  presenteNome: string;
+  precoCatalogo?: string;
 };
 
-export default function FormPix({ token, catalog, presentePreselecionado }: Props) {
+export default function FormPix({ token, presenteNome, precoCatalogo }: Props) {
   const router = useRouter();
-  const [presente, setPresente] = useState(presentePreselecionado || "");
   const [valor, setValor] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!presente.trim()) {
-      setErro("Selecione um presente.");
-      return;
-    }
     setErro("");
     setLoading(true);
 
@@ -34,7 +27,7 @@ export default function FormPix({ token, catalog, presentePreselecionado }: Prop
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          presente: presente.trim(),
+          presente: presenteNome.trim(),
           valor: valor.trim() ? valor.replace(/\D/g, "") : undefined,
         }),
       });
@@ -46,7 +39,6 @@ export default function FormPix({ token, catalog, presentePreselecionado }: Prop
         return;
       }
 
-      setSucesso(true);
       router.refresh();
     } catch {
       setErro("Erro de conexão. Tente novamente.");
@@ -55,61 +47,41 @@ export default function FormPix({ token, catalog, presentePreselecionado }: Prop
     }
   }
 
-  if (sucesso) return null;
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">
-          Qual presente escolheu? *
-        </label>
-        <select
-          value={presente}
-          onChange={(e) => setPresente(e.target.value)}
-          required
-          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent transition-all"
-        >
-          <option value="">Selecione...</option>
-          {catalog.map((p, i) => (
-            <option key={i} value={p.nome}>
-              {p.nome}
-              {p.preco ? ` (R$ ${p.preco.replace(".", ",")})` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-5 border-t border-invite-olive/20 pt-8">
+      <p className="font-invite-caps text-[0.68rem] font-medium uppercase tracking-[0.16em] text-invite-olive/80">
+        2. Confirme após pagar
+      </p>
+      <p className="font-sans text-sm leading-relaxed text-invite-olive/75">
+        Depois de transferir, clique no botão abaixo para avisar os noivos.
+      </p>
 
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1">
-          Valor (opcional)
+        <label htmlFor="valor-pix" className={presentesLabelClass}>
+          Valor pago{" "}
+          <span className="font-sans font-normal normal-case tracking-normal text-invite-olive/55">
+            (opcional)
+          </span>
         </label>
         <input
+          id="valor-pix"
           type="text"
           value={valor}
           onChange={(e) => setValor(e.target.value)}
-          placeholder="Ex: 150,00"
-          className="w-full px-4 py-3 border border-stone-300 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all placeholder:text-stone-400"
+          placeholder={precoCatalogo ? `Sugerido: R$ ${precoCatalogo.replace(".", ",")}` : "Ex.: 150,00"}
+          className={presentesFieldClass}
         />
       </div>
 
       {erro && (
-        <div className="space-y-1">
-          <p className="text-red-600 text-sm">{erro}</p>
-          <p className="text-stone-500 text-xs">Verifique sua conexão e tente novamente.</p>
-        </div>
+        <p className="font-sans text-sm text-red-700/90" role="alert">
+          {erro}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva active:scale-[0.98] disabled:opacity-50 transition shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
-      >
+      <button type="submit" disabled={loading} className={presentesBtnPrimary}>
         {loading ? "Registrando..." : "Já fiz o Pix"}
       </button>
-
-      <p className="text-stone-500 text-sm">
-        Registramos sua contribuição. A conferência do Pix é feita manualmente pelos noivos.
-      </p>
     </form>
   );
 }
