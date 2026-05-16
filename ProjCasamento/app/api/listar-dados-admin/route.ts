@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { readFromSheet } from "@/lib/google";
+import { parsePresencaSheetRow, readFromSheet } from "@/lib/google";
 import { validateAdminSessionToken } from "@/lib/auth";
 import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
 
@@ -19,7 +19,7 @@ export async function GET() {
   try {
     const [convidados, presencas, presentes, uploads, recados, catalogoPresentes] = await Promise.all([
       readFromSheet(sheetId, "Convidados!A2:F"),
-      readFromSheet(sheetId, "Presenças!A2:F"),
+      readFromSheet(sheetId, "Presenças!A2:E"),
       readFromSheet(sheetId, "Presentes!A2:D"),
       readFromSheet(sheetId, "Uploads!A2:D"),
       readFromSheet(sheetId, "Recados!A2:D").catch(() => []),
@@ -40,15 +40,39 @@ export async function GET() {
 
     const tokenParaNome = new Map(convidadosFormatados.map((c) => [c.token.toLowerCase(), c.nome]));
 
-    const presencasFormatadas = (presencas as (string | number)[][]).map((row) => ({
-      token: row[0],
-      nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
-      confirmado: row[1],
-      telefone: row[2],
-      mensagem: row[3],
-      nomesAcompanhantes: row[4],
-      data: row[5] ?? row[3],
+    const presencasFormatadas = (presencas as (string | number)[][]).map((row) => {
+      const mapped = parsePresencaSheetRow(row);
+      return {
+        token: row[0],
+        nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
+        confirmado: row[1],
+        nomesAcompanhantes: mapped.nomesAcompanhantes,
+        data: mapped.data,
+      };
+    });
+
+    const recadosPlanilha = (recados as (string | number)[][]).map((row) => ({
+      token: String(row[0] ?? ""),
+      nome: String(row[1] ?? ""),
+      mensagem: String(row[2] ?? ""),
+      data: String(row[3] ?? ""),
     }));
+
+    const recadosPresenca = (presencas as (string | number)[][])
+      .map((row) => {
+        const mapped = parsePresencaSheetRow(row);
+        if (!mapped.mensagem) return null;
+        const token = String(row[0] ?? "");
+        return {
+          token,
+          nome: tokenParaNome.get(token.toLowerCase()) ?? "-",
+          mensagem: mapped.mensagem,
+          data: mapped.data,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    const recadosFormatados = [...recadosPlanilha, ...recadosPresenca];
 
     const presentesFormatados = (presentes as (string | number)[][]).map((row) => ({
       token: row[0],
@@ -62,13 +86,6 @@ export async function GET() {
       tipo: row[0],
       nome: row[1],
       arquivo: row[2],
-      data: row[3],
-    }));
-
-    const recadosFormatados = (recados as (string | number)[][]).map((row) => ({
-      token: row[0],
-      nome: row[1],
-      mensagem: row[2],
       data: row[3],
     }));
 

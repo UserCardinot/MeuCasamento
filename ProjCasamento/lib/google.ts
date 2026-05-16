@@ -222,30 +222,111 @@ export async function getConvidadoByToken(token: string): Promise<string[] | nul
   return found ? (found as string[]) : null;
 }
 
+/** Aba Presenças: A=token, B=confirmado, C=mensagem, D=acompanhantes, E=data (legado 4 col.: D=data) */
+const PRESENCAS_SHEET = "Presenças";
+const PRESENCAS_RANGE = `${PRESENCAS_SHEET}!A2:E`;
+
+export function parsePresencaSheetRow(row: (string | number)[]) {
+  const colD = String(row[3] ?? "").trim();
+  const colE = String(row[4] ?? "").trim();
+  if (colE) {
+    return {
+      mensagem: String(row[2] ?? "").trim(),
+      nomesAcompanhantes: colD,
+      data: colE,
+    };
+  }
+  return {
+    mensagem: String(row[2] ?? "").trim(),
+    nomesAcompanhantes: "",
+    data: colD,
+  };
+}
+
+function parseConfirmadoCol(val: unknown): boolean {
+  const col = String(val ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+  return col === "sim" || col.startsWith("sim ") || col.includes("estarei");
+}
+
+function findPresencaRowIndex(rows: unknown[][], token: string): number {
+  const tokenNorm = String(token).trim().toLowerCase();
+  return rows.findIndex((row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm);
+}
+
 /**
- * Busca o status de presença mais recente do convidado
- * Retorna { confirmado, telefone, data } ou null se nunca confirmou
+ * Cria ou atualiza a linha do convidado (uma linha por token).
+ * Colunas: token | confirmado | mensagem | acompanhantes | data
+ */
+export async function upsertPresencaRow(
+  spreadsheetId: string,
+  guestToken: string,
+  fields: { confirmado: boolean; mensagem?: string; nomesAcompanhantes?: string }
+): Promise<"created" | "updated"> {
+  const rows = await readFromSheet(spreadsheetId, PRESENCAS_RANGE);
+  const idx = findPresencaRowIndex(rows, guestToken);
+  const data = new Date().toLocaleString("pt-BR");
+  const token = String(guestToken).trim();
+  const newRow = [
+    token,
+    fields.confirmado ? "Sim" : "Não",
+    (fields.mensagem ?? "").trim(),
+    (fields.nomesAcompanhantes ?? "").trim(),
+    data,
+  ];
+
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+
+  if (idx === -1) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${PRESENCAS_SHEET}!A:E`,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [newRow] },
+    });
+    return "created";
+  }
+
+  const sheetRow = idx + 2;
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${PRESENCAS_SHEET}!A${sheetRow}:E${sheetRow}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [newRow] },
+  });
+  return "updated";
+}
+
+/**
+ * Busca o status de presença do convidado (uma linha por token).
  */
 export async function getPresencaStatus(
   token: string
-): Promise<{ confirmado: boolean; telefone?: string; data?: string } | null> {
+): Promise<{
+  confirmado: boolean;
+  mensagem?: string;
+  nomesAcompanhantes?: string;
+  data?: string;
+} | null> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) return null;
 
-  const rows = await readFromSheet(sheetId, "Presenças!A2:F");
-  const tokenNorm = String(token).trim().toLowerCase();
-  const matching = rows.filter(
-    (row) => String(row[0] ?? "").trim().toLowerCase() === tokenNorm
-  );
-  if (matching.length === 0) return null;
+  const rows = await readFromSheet(sheetId, PRESENCAS_RANGE);
+  const idx = findPresencaRowIndex(rows, token);
+  if (idx === -1) return null;
 
-  const last = matching[matching.length - 1] as (string | number)[];
-  const confirmado = String(last[1] ?? "").toLowerCase().includes("sim");
-  const dataCol = last[5] ?? last[3];
+  const row = rows[idx] as (string | number)[];
+  const mapped = parsePresencaSheetRow(row);
   return {
-    confirmado,
-    telefone: last[2] ? String(last[2]) : undefined,
-    data: dataCol ? String(dataCol) : undefined,
+    confirmado: parseConfirmadoCol(row[1]),
+    mensagem: mapped.mensagem || undefined,
+    nomesAcompanhantes: mapped.nomesAcompanhantes || undefined,
+    data: mapped.data || undefined,
   };
 }
 

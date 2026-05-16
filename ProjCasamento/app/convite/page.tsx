@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { validateGuestToken } from "@/lib/auth";
 import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
-import StatusPresenca from "./StatusPresenca";
+import BannerPresencaConvite from "./BannerPresencaConvite";
+import ConviteResumoConvidado from "./ConviteResumoConvidado";
+
+export const dynamic = "force-dynamic";
 import ContagemRegressiva from "./ContagemRegressiva";
 import { ConviteCapaTransicao, ConviteLogoImagem } from "./ConviteImagens";
 import { EVENTO, getDataHoraConviteUppercase } from "@/lib/evento";
@@ -233,7 +236,13 @@ export default async function ConvitePage({ searchParams }: Props) {
     getPresencaStatus(token),
   ]);
   const nome = convidado?.[1] || "Convidado";
-  const jaConfirmou = presenca?.confirmado === true;
+  const respondeuPresenca = presenca !== null;
+  const presencaConfirmada = presenca?.confirmado === true;
+  const acompanhantesConviteCadastro = convidado?.[2]?.trim() ?? "";
+  const acompanhantesExibir =
+    respondeuPresenca && presenca?.nomesAcompanhantes?.trim()
+      ? presenca.nomesAcompanhantes.trim()
+      : acompanhantesConviteCadastro;
 
   const { primeiro, segundo, monograma } = EVENTO.noivos;
   return (
@@ -249,7 +258,7 @@ export default async function ConvitePage({ searchParams }: Props) {
           aria-hidden
           className="pointer-events-none absolute left-4 right-4 top-4 z-[12] h-px bg-invite-olive sm:inset-x-0 sm:top-5 md:top-6"
         />
-        <div className="invite-wall-texture-bg relative z-10 flex flex-col">
+        <div className="relative z-10 flex flex-col">
           <section className="flex min-h-[100svh] w-full max-w-none flex-col">
             <div className="flex min-h-0 w-full flex-1 flex-col justify-center pb-0">
               <div className="flex w-full translate-y-5 flex-col items-center sm:translate-y-6 md:translate-y-7">
@@ -326,19 +335,25 @@ export default async function ConvitePage({ searchParams }: Props) {
               <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.92rem] font-medium uppercase leading-relaxed tracking-[0.1em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[1.02rem] md:max-w-[26rem] md:text-[1.08rem]">
                 {EVENTO.local.endereco}
               </p>
+
+              <ConviteResumoConvidado
+                nome={nome}
+                acompanhantesTexto={acompanhantesExibir}
+                presencaConfirmada={presencaConfirmada}
+              />
             </div>
           </section>
 
           <section className="flex flex-col justify-start pt-2 pb-10 sm:pt-3 sm:pb-12">
             <div className="w-full py-4 sm:py-6">
-              {jaConfirmou && (
-                <div className="border border-invite-olive/25 bg-invite-cream/70 px-4 py-5">
-                  <StatusPresenca token={token} />
-                </div>
-              )}
+              <BannerPresencaConvite
+                token={token}
+                respondeuInicial={respondeuPresenca}
+                confirmadoInicial={presencaConfirmada}
+              />
 
               <div
-                className={`mx-auto w-full max-w-[24rem] sm:max-w-[26rem] md:max-w-[28rem] ${jaConfirmou ? "mt-10" : ""}`}
+                className="mx-auto w-full max-w-[24rem] sm:max-w-[26rem] md:max-w-[28rem]"
               >
                 <div
                   role="navigation"

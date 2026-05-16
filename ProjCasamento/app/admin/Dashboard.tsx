@@ -18,7 +18,7 @@ type DadosAdmin = {
     origem: string;
     link: string;
   }[];
-  presencas: { token: string; nome?: string; confirmado: string; telefone: string; mensagem?: string; nomesAcompanhantes?: string; data: string }[];
+  presencas: { token: string; nome?: string; confirmado: string; nomesAcompanhantes?: string; data: string }[];
   presentes: { token: string; nome?: string; presente: string; valor: string; data: string }[];
   uploads: { tipo: string; nome: string; arquivo: string; data: string }[];
   recados?: { token: string; nome: string; mensagem: string; data: string }[];
@@ -342,9 +342,11 @@ export default function Dashboard() {
           .join("\n");
     } else {
       csv =
-        "Nome;Confirmado;Telefone;Acompanhantes;Mensagem;Data\n" +
+        "Nome;Confirmado;Acompanhantes;Data\n" +
         presencasFiltradas
-          .map((p) => `${p.nome ?? p.token};${p.confirmado};${p.telefone};${p.nomesAcompanhantes ?? ""};${(p.mensagem ?? "").replace(/;/g, ",")};${p.data}`)
+          .map((p) =>
+            `${p.nome ?? p.token};${p.confirmado};${(p.nomesAcompanhantes ?? "").replace(/;/g, ",")};${p.data}`
+          )
           .join("\n");
     }
     const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8" });
@@ -762,14 +764,12 @@ export default function Dashboard() {
             />
             <div className={TABLE_WRAP}>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] text-sm leading-relaxed">
+                <table className="w-full min-w-[640px] text-sm leading-relaxed">
                   <thead>
                     <tr className={THEAD_ROW}>
                       <th className="px-4 py-3">Nome</th>
                       <th className="px-4 py-3">Confirmado</th>
-                      <th className="px-4 py-3">Telefone</th>
                       <th className="px-4 py-3">Acompanhantes</th>
-                      <th className="px-4 py-3">Mensagem</th>
                       <th className="px-4 py-3">Data</th>
                     </tr>
                   </thead>
@@ -778,10 +778,8 @@ export default function Dashboard() {
                       <tr key={i} className="transition hover:bg-zinc-50/80">
                         <td className="px-4 py-3.5 font-medium text-zinc-900">{p.nome ?? p.token}</td>
                         <td className="px-4 py-3.5 text-zinc-700">{p.confirmado}</td>
-                        <td className="px-4 py-3.5 text-zinc-600">{p.telefone}</td>
-                        <td className="px-4 py-3.5 text-zinc-600">{p.nomesAcompanhantes || "—"}</td>
-                        <td className="max-w-[220px] truncate px-4 py-3.5 text-zinc-600" title={p.mensagem}>
-                          {p.mensagem || "—"}
+                        <td className="max-w-[220px] truncate px-4 py-3.5 text-zinc-600" title={p.nomesAcompanhantes}>
+                          {p.nomesAcompanhantes || "—"}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5 text-zinc-500">{p.data}</td>
                       </tr>
@@ -906,7 +904,7 @@ export default function Dashboard() {
             <PageSection
               eyebrow="Mensagens"
               title="Recados"
-              description="Mensagens deixadas pelos convidados no site."
+              description="Mensagens da confirmação de presença e da página de recados."
             />
             {recados.length > 0 ? (
               <div className={TABLE_WRAP}>
@@ -921,7 +919,7 @@ export default function Dashboard() {
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {recados.map((r, i) => (
-                        <tr key={i} className="transition hover:bg-zinc-50/80">
+                        <tr key={`${r.token}-${i}`} className="transition hover:bg-zinc-50/80">
                           <td className="px-4 py-3.5 font-medium text-zinc-900">{r.nome}</td>
                           <td className="px-4 py-3.5 text-zinc-700">{r.mensagem}</td>
                           <td className="whitespace-nowrap px-4 py-3.5 text-zinc-500">{r.data}</td>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendToSheet } from "@/lib/google";
+import { getConvidadoByToken, updateConvidadoRow, upsertPresencaRow } from "@/lib/google";
 import { validateGuestToken } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { token?: string; confirmado?: boolean; telefone?: string; mensagem?: string; nomesAcompanhantes?: string };
+  let body: { token?: string; confirmado?: boolean; mensagem?: string; nomesAcompanhantes?: string };
   try {
     body = await request.json();
   } catch {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { token, confirmado, telefone, mensagem, nomesAcompanhantes } = body;
+  const { token, confirmado, mensagem, nomesAcompanhantes } = body;
 
   if (!token || typeof token !== "string") {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
@@ -50,11 +50,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const data = new Date().toLocaleString("pt-BR");
-    await appendToSheet(sheetId, "Presenças!A:F", [
-      [token, confirmado ? "Sim" : "Não", telefone || "", mensagem || "", nomesAcompanhantes || "", data],
-    ]);
-    return NextResponse.json({ sucesso: true });
+    const listaAcompanhantes = nomesAcompanhantes?.trim() ?? "";
+
+    const acao = await upsertPresencaRow(sheetId, token, {
+      confirmado,
+      mensagem: mensagem?.trim() || undefined,
+      nomesAcompanhantes: confirmado ? listaAcompanhantes || undefined : undefined,
+    });
+
+    const convidado = await getConvidadoByToken(token);
+    if (convidado) {
+      await updateConvidadoRow(sheetId, token, {
+        nome: String(convidado[1] ?? ""),
+        acompanhantes: confirmado ? listaAcompanhantes : String(convidado[2] ?? ""),
+        contato: String(convidado[3] ?? ""),
+        origem: String(convidado[5] ?? ""),
+      });
+    }
+
+    return NextResponse.json({ sucesso: true, acao });
   } catch (err) {
     console.error("Erro ao salvar presença:", err);
     return NextResponse.json(

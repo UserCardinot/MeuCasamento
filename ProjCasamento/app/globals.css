@@ -7,30 +7,49 @@
   font-family: "Luxurious Script", ui-serif, cursive;
 }
 
-/* Papel off-white: vincos leves + grão; sem manchas escuras no meio (evita faixa atrás do texto). */
+/*
+ * Papel amassado + grão da parede em camada fixa, para a textura não sumir atrás dos filhos.
+ */
 .invite-wall-texture-bg {
+  position: relative;
+  isolation: isolate;
+  background-color: #f0ebe1;
+}
+
+.invite-wall-texture-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background-color: #f0ebe1;
   background-image:
+    url("/convite/texture-papel-completo.svg"),
     url("/convite/texture-parede.svg"),
-    url("/convite/texture-papel-grao.svg"),
-    radial-gradient(ellipse 115% 90% at 50% -18%, rgba(255, 253, 248, 0.58) 0%, transparent 58%),
-    radial-gradient(ellipse 95% 70% at 0% 38%, rgba(255, 255, 252, 0.22) 0%, transparent 46%),
-    radial-gradient(ellipse 88% 80% at 100% 58%, rgba(247, 243, 232, 0.75) 0%, transparent 52%),
-    linear-gradient(176deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%, transparent 100%);
+    radial-gradient(ellipse 42% 32% at 18% 28%, rgba(74, 80, 56, 0.07) 0%, transparent 72%),
+    radial-gradient(ellipse 38% 30% at 78% 62%, rgba(74, 80, 56, 0.06) 0%, transparent 68%),
+    radial-gradient(ellipse 48% 36% at 52% 48%, rgba(255, 253, 248, 0.14) 0%, transparent 62%),
+    radial-gradient(ellipse 120% 85% at 50% -12%, rgba(255, 253, 248, 0.18) 0%, transparent 55%);
   background-size:
-    128px 128px,
-    200px 200px,
+    280px 280px,
+    384px 384px,
     100% 100%,
     100% 100%,
     100% 100%,
     100% 100%;
   background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position:
-    0 0,
-    13px 37px,
-    0 0,
-    0 0,
-    0 0,
-    0 0;
-  background-blend-mode: normal, soft-light, soft-light, soft-light, soft-light, normal;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+}
+
+.invite-wall-texture-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Só grão SVG — sem cor de fundo, senão apaga a foto da capa por cima */
+.invite-paper-texture-overlay {
+  background-image: url("/convite/texture-papel-completo.svg");
+  background-size: 280px 280px;
+  background-repeat: repeat;
+  opacity: 0.78;
 }

@@ -81,7 +81,7 @@ export function ConviteCapaTransicao({ alt, fallback }: { alt: string; fallback:
   const tijoloTopo = (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[18] bg-[url('/convite/texture-parede.svg')] bg-[length:128px_128px] bg-repeat opacity-[0.34] mix-blend-soft-light"
+      className="invite-paper-texture-overlay pointer-events-none absolute inset-0 z-[18]"
     />
   );
 
