@@ -32,6 +32,13 @@ export default function FormMercadoPago({ token, presentesNomes, totalSugerido }
         return;
       }
       const url = data.init_point as string | undefined;
+      const host = data.checkout_host as string | undefined;
+      if (url && host && !host.includes("sandbox.mercadopago") && data.sandbox === true) {
+        setErro(
+          "Checkout abriria em produção com modo teste. No Vercel, defina MERCADOPAGO_SANDBOX=true e Access Token de teste."
+        );
+        return;
+      }
       if (url) {
         window.location.href = url;
         return;

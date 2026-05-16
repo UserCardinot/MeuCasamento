@@ -14,6 +14,8 @@ import {
   formatMercadoPagoApiError,
   getCheckoutBaseUrl,
   isMercadoPagoSandboxCheckoutUrl,
+  mercadoPagoCollectorIdFromAccessToken,
+  mercadoPagoCollectorIdFromPreferenceId,
   resolveMercadoPagoInitPoint,
   shouldUseMercadoPagoSandbox,
 } from "@/lib/mercadopago-shared";
@@ -144,12 +146,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const collectorId =
+      mercadoPagoCollectorIdFromPreferenceId(result.id) ??
+      mercadoPagoCollectorIdFromAccessToken(accessToken);
+    const esperadoProducao = process.env.MERCADOPAGO_PRODUCAO_COLLECTOR_ID?.trim();
+
+    if (!sandbox && esperadoProducao && collectorId && collectorId !== esperadoProducao) {
+      return NextResponse.json(
+        {
+          erro: `Este site está com Access Token de TESTE (vendedor ${collectorId}). No Vercel Production use o token de PRODUÇÃO (vendedor ${esperadoProducao}) e MERCADOPAGO_SANDBOX=false. Pagamento com conta real só funciona com vendedor de produção.`,
+        },
+        { status: 400 }
+      );
+    }
+
     const total = lineItems.items.reduce((s, it) => s + it.unit_price, 0);
+    const checkoutHost = new URL(initPoint).hostname;
 
     return NextResponse.json({
       init_point: initPoint,
       preference_id: result.id,
       sandbox,
+      checkout_host: checkoutHost,
+      collector_id: collectorId,
       total,
       quantidade: nomes.length,
     });

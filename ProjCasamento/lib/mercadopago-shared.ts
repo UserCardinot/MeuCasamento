@@ -57,6 +57,18 @@ export function isMercadoPagoTestToken(accessToken: string): boolean {
  * Sandbox (checkout de teste): MERCADOPAGO_SANDBOX=true no .env.local.
  * Teste e produção no painel MP usam APP_USR- — a flag evita confusão.
  */
+/** ID numérico do vendedor no final do Access Token (ex.: ...-3373866106). */
+export function mercadoPagoCollectorIdFromAccessToken(accessToken: string): string | null {
+  const m = accessToken.trim().match(/-(\d+)$/);
+  return m?.[1] ?? null;
+}
+
+export function mercadoPagoCollectorIdFromPreferenceId(preferenceId: string | undefined): string | null {
+  if (!preferenceId?.trim()) return null;
+  const m = preferenceId.trim().match(/^(\d+)-/);
+  return m?.[1] ?? null;
+}
+
 export function shouldUseMercadoPagoSandbox(accessToken: string): boolean {
   const flag = process.env.MERCADOPAGO_SANDBOX?.trim().toLowerCase();
   if (flag === "true" || flag === "1" || flag === "yes") return true;

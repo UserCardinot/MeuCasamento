@@ -23,7 +23,23 @@ export default function AvisoCartaoTesteMP() {
     };
   }, []);
 
-  if (sandbox !== true) return null;
+  if (sandbox === null) return null;
+
+  if (sandbox === false) {
+    return (
+      <div className="rounded-sm border border-amber-700/30 bg-amber-50/90 px-3 py-3 font-sans text-xs leading-relaxed text-amber-950/90">
+        <p className="font-semibold">Modo produção (cartão real)</p>
+        <p className="mt-1">
+          O servidor está com <span className="font-mono">MERCADOPAGO_SANDBOX=false</span>. O checkout abre em{" "}
+          <span className="font-mono">www.mercadopago.com.br</span> — use <strong>cartão real</strong>.
+        </p>
+        <p className="mt-2">
+          Cartão de teste gera: &quot;Uma das partes com as quais você está tentando efetuar o pagamento é de
+          teste&quot;.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-sm border border-sky-800/20 bg-sky-50/90 px-3 py-3 font-sans text-xs leading-relaxed text-sky-950/90">
