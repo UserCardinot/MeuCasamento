@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Muitas tentativas. Aguarde um minuto." }, { status: 429 });
   }
 
-  let body: { token?: string; payment_id?: string };
+  let body: { token?: string; payment_id?: string; external_reference?: string };
   try {
     body = await request.json();
   } catch {
@@ -25,19 +25,28 @@ export async function POST(request: NextRequest) {
     body.payment_id?.trim() ||
     request.nextUrl.searchParams.get("payment_id")?.trim() ||
     request.nextUrl.searchParams.get("collection_id")?.trim();
+  const externalReference =
+    body.external_reference?.trim() ||
+    request.nextUrl.searchParams.get("external_reference")?.trim();
 
   if (!token) {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
-  if (!paymentId) {
-    return NextResponse.json({ erro: "ID do pagamento obrigatório" }, { status: 400 });
+  if (!paymentId && !externalReference) {
+    return NextResponse.json(
+      { erro: "ID do pagamento ou referência externa obrigatório" },
+      { status: 400 }
+    );
   }
 
   if (!(await validateGuestToken(token))) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const result = await registrarPagamentoMercadoPago(paymentId);
+  const result = await registrarPagamentoMercadoPago({
+    paymentId,
+    externalReference,
+  });
   if (!result.ok) {
     return NextResponse.json({ erro: result.erro }, { status: 400 });
   }

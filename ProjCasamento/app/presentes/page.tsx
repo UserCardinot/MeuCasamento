@@ -80,8 +80,20 @@ export default async function PresentesPage({ searchParams }: Props) {
 
   const paymentId =
     pickParam(params?.payment_id) || pickParam(params?.collection_id);
-  if (mpStatus === "success" && paymentId) {
-    await registrarPagamentoMercadoPago(paymentId);
+  const externalReference = pickParam(params?.external_reference);
+  const mpPaymentStatus = pickParam(params?.status);
+  const deveRegistrar =
+    mpStatus === "success" ||
+    mpPaymentStatus === "approved" ||
+    mpPaymentStatus === "success";
+  if (deveRegistrar && (paymentId || externalReference)) {
+    const reg = await registrarPagamentoMercadoPago({
+      paymentId,
+      externalReference,
+    });
+    if (!reg.ok) {
+      console.warn("Presentes: registro MP no retorno:", reg.erro);
+    }
   }
 
   const [convidado, presenteRegistrado, catalogo] = await Promise.all([
@@ -115,12 +127,12 @@ export default async function PresentesPage({ searchParams }: Props) {
             </p>
           </header>
 
-          {mpStatus === "success" && (
+          {(mpStatus === "success" || mpPaymentStatus === "approved") && (
             <AvisoPagamento tipo="success">
               <p className="font-medium">Pagamento aprovado no Mercado Pago.</p>
               <p className="mt-2 text-invite-olive/85">
-                Ao voltar para esta página, sua contribuição é registrada na planilha automaticamente. Se ainda
-                vê a lista de presentes, aguarde alguns segundos ou recarregue.
+                Sua contribuição é registrada na planilha automaticamente. Se o histórico dos noivos ainda não
+                atualizou, aguarde alguns segundos ou recarregue esta página.
               </p>
               <Suspense fallback={null}>
                 <ConfirmarRetornoMP token={token} mpStatus={mpStatus} />

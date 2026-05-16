@@ -6,15 +6,35 @@ export const dynamic = "force-dynamic";
 function extractPaymentIdFromWebhookBody(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
   const o = body as Record<string, unknown>;
+
   const data = o.data;
-  if (data && typeof data === "object") {
-    const id = (data as Record<string, unknown>).id;
-    if (id !== undefined && id !== null) return String(id);
+  const dataId =
+    data && typeof data === "object" && (data as Record<string, unknown>).id != null
+      ? String((data as Record<string, unknown>).id)
+      : null;
+
+  const type = typeof o.type === "string" ? o.type : "";
+  const action = typeof o.action === "string" ? o.action : "";
+  const topic = typeof o.topic === "string" ? o.topic : "";
+
+  if (dataId && (type === "payment" || topic === "payment" || action.startsWith("payment."))) {
+    return dataId;
   }
-  if (o.id !== undefined && o.id !== null && (o.type === "payment" || o.topic === "payment")) {
+
+  if (o.id != null && (type === "payment" || topic === "payment")) {
     return String(o.id);
   }
+
   return null;
+}
+
+async function processPaymentNotification(id: string, origem: string) {
+  const result = await registrarPagamentoMercadoPago(id);
+  if (!result.ok) {
+    console.warn(`Webhook MP (${origem}):`, result.erro, id);
+  } else if (!result.jaRegistrado) {
+    console.info(`Webhook MP (${origem}): registrado`, id);
+  }
 }
 
 /** Notificações do Mercado Pago (POST JSON ou GET estilo IPN) */
@@ -29,10 +49,7 @@ export async function POST(request: NextRequest) {
 
     const id = extractPaymentIdFromWebhookBody(body);
     if (id) {
-      const result = await registrarPagamentoMercadoPago(id);
-      if (!result.ok) {
-        console.warn("Webhook MP:", result.erro, id);
-      }
+      await processPaymentNotification(id, "POST");
     }
     return new NextResponse(null, { status: 200 });
   } catch (e) {
@@ -44,12 +61,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const topic = request.nextUrl.searchParams.get("topic");
-    const id = request.nextUrl.searchParams.get("id") || request.nextUrl.searchParams.get("data.id");
+    const id =
+      request.nextUrl.searchParams.get("id") ||
+      request.nextUrl.searchParams.get("data.id");
     if (topic === "payment" && id) {
-      const result = await registrarPagamentoMercadoPago(id);
-      if (!result.ok) {
-        console.warn("Webhook MP GET:", result.erro, id);
-      }
+      await processPaymentNotification(id, "GET");
     }
     return new NextResponse("OK", { status: 200 });
   } catch (e) {

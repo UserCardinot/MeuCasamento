@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AddConvidado from "./AddConvidado";
 import EnvioEmLote from "./EnvioEmLote";
 import AddPresente from "./AddPresente";
+import SincronizarPagamentoMP from "./SincronizarPagamentoMP";
 import EditarConvidadoModal from "./EditarConvidadoModal";
 import { contarPessoasNoConvite, totalPessoasConvidadas } from "@/lib/contagemConvidados";
 
@@ -866,8 +867,9 @@ export default function Dashboard() {
               <PageSection
                 eyebrow="Histórico"
                 title="Registros de presentes"
-                description="Quem reservou cada item e valores informados."
+                description="Quem comprou (pelo link do convite), presente e valor. O item continua na lista do catálogo."
               />
+              <SincronizarPagamentoMP onSincronizado={carregar} />
               <div className={TABLE_WRAP}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[560px] text-sm leading-relaxed">

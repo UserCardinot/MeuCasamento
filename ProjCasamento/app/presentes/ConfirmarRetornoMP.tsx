@@ -14,13 +14,20 @@ export default function ConfirmarRetornoMP({ token, mpStatus }: Props) {
   const [mensagem, setMensagem] = useState<string | null>(null);
 
   useEffect(() => {
-    if (mpStatus !== "success") return;
+    const statusParam = searchParams.get("status")?.trim();
+    if (mpStatus !== "success" && statusParam !== "approved") return;
 
     const paymentId =
       searchParams.get("payment_id")?.trim() || searchParams.get("collection_id")?.trim();
+    const externalReference = searchParams.get("external_reference")?.trim();
+    const status = searchParams.get("status")?.trim();
 
-    if (!paymentId) {
-      setMensagem(null);
+    if (!paymentId && !externalReference) {
+      setMensagem(
+        status === "approved"
+          ? "Pagamento aprovado. Se o presente não aparecer no histórico, recarregue em alguns segundos."
+          : null
+      );
       return;
     }
 
@@ -31,7 +38,11 @@ export default function ConfirmarRetornoMP({ token, mpStatus }: Props) {
         const res = await fetch("/api/mercadopago/confirmar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, payment_id: paymentId }),
+          body: JSON.stringify({
+            token,
+            payment_id: paymentId || undefined,
+            external_reference: externalReference || undefined,
+          }),
         });
         const data = await res.json();
         if (cancelado) return;
@@ -59,7 +70,8 @@ export default function ConfirmarRetornoMP({ token, mpStatus }: Props) {
     };
   }, [mpStatus, searchParams, token, router]);
 
-  if (!mensagem || mpStatus !== "success") return null;
+  const statusParam = searchParams.get("status");
+  if (!mensagem || (mpStatus !== "success" && statusParam !== "approved")) return null;
 
   return (
     <p className="mt-2 font-sans text-sm font-medium">{mensagem}</p>
