@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { validateGuestToken } from "@/lib/auth";
-import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
+import { getPresencaStatus } from "@/lib/google";
 import BannerPresencaConvite from "./BannerPresencaConvite";
-import ConviteResumoConvidado from "./ConviteResumoConvidado";
 
 export const dynamic = "force-dynamic";
 import ContagemRegressiva from "./ContagemRegressiva";
@@ -14,8 +13,8 @@ const COLOSSENSES_3_14_NVI =
   "Acima de tudo, porém, revistam\u2011se do amor, que é o elo perfeito.";
 
 const CONVITE_PIX = {
-  titular: "Lucas Cardinot da Silva",
-  chave: "lucascardinot2000@gmail.com",
+  titular: "Nome: Lucas Cardinot da Silva",
+  chave: "Chave: lucascardinot2000@gmail.com",
 } as const;
 
 /** Largura máxima do convite (~lateral da folha A4: 210 mm). */
@@ -49,10 +48,10 @@ function NomesNoivosTitulo({
 function Monograma({ a, b }: { a: string; b: string }) {
   return (
     <div
-      className="mx-auto flex h-[7.5rem] w-[7.5rem] items-center justify-center rounded-full border-[1.5px] border-invite-olive text-invite-olive sm:h-[9.25rem] sm:w-[9.25rem] md:h-[9.75rem] md:w-[9.75rem]"
+      className="mx-auto flex h-[6.25rem] w-[6.25rem] items-center justify-center rounded-full border-[1.5px] border-invite-olive text-invite-olive sm:h-[8rem] sm:w-[8rem] md:h-[8.75rem] md:w-[8.75rem]"
       aria-hidden
     >
-      <span className="font-invite-caps text-3xl font-semibold tracking-[-0.2em] sm:text-4xl md:text-[2.35rem]">
+      <span className="font-invite-caps text-2xl font-semibold tracking-[-0.2em] sm:text-3xl md:text-[2rem]">
         <span className="inline-block translate-x-0.5">{a}</span>
         <span className="inline-block -translate-x-1">{b}</span>
       </span>
@@ -68,7 +67,7 @@ function IconeCirculo({
 }: {
   href: string;
   externo?: boolean;
-  rotulo: string;
+  rotulo: ReactNode;
   children: ReactNode;
 }) {
   const inner = (
@@ -86,6 +85,7 @@ function IconeCirculo({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        aria-label="Como chegar"
         className="flex shrink-0 flex-col items-center"
       >
         {inner}
@@ -159,25 +159,25 @@ function IconePix() {
   );
 }
 
-/** Mesmo layout dos atalhos circulares, sem link (apenas informativo). */
 function BlocoPixInformativo({ titular, chave }: { titular: string; chave: string }) {
   return (
     <div
-      className="flex max-w-[13rem] shrink-0 flex-col items-center sm:max-w-[15rem] md:max-w-[16.5rem]"
+      className="flex w-full max-w-[20rem] flex-col items-center sm:max-w-[22rem]"
       role="group"
       aria-label={`Pix: titular ${titular}, chave ${chave}`}
     >
       <span className={`${inviteAtalhoCirculoBtn} pointer-events-none`}>
         <IconePix />
       </span>
-      <span className={`${inviteAtalhoRotulo} max-w-[13rem] sm:max-w-[15rem] md:max-w-[16.5rem]`}>
-        <span className="block text-center font-invite-caps text-[0.88rem] font-medium normal-case leading-snug tracking-[0.06em] text-invite-olive sm:text-[0.95rem] md:text-[1rem]">
+      <span className={`${inviteAtalhoRotulo} font-semibold text-invite-olive`}>Pix</span>
+      <div className="mt-4 w-full border border-invite-olive/35 px-4 py-4 text-center sm:px-5 sm:py-5">
+        <p className="font-sans text-[0.9rem] font-medium normal-case leading-snug text-invite-olive sm:text-[0.94rem]">
           {titular}
-        </span>
-        <span className="mt-2 block break-all font-sans text-[0.85rem] font-medium normal-case leading-snug tracking-normal text-invite-olive/95 sm:text-[0.92rem] md:text-[0.98rem]">
+        </p>
+        <p className="font-sans mt-1.5 break-all text-[0.9rem] font-medium normal-case leading-snug text-invite-olive/90 sm:text-[0.94rem]">
           {chave}
-        </span>
-      </span>
+        </p>
+      </div>
     </div>
   );
 }
@@ -231,27 +231,18 @@ export default async function ConvitePage({ searchParams }: Props) {
     );
   }
 
-  const [convidado, presenca] = await Promise.all([
-    getConvidadoByToken(token),
-    getPresencaStatus(token),
-  ]);
-  const nome = convidado?.[1] || "Convidado";
+  const presenca = await getPresencaStatus(token);
   const respondeuPresenca = presenca !== null;
   const presencaConfirmada = presenca?.confirmado === true;
-  const acompanhantesConviteCadastro = convidado?.[2]?.trim() ?? "";
-  const acompanhantesExibir =
-    respondeuPresenca && presenca?.nomesAcompanhantes?.trim()
-      ? presenca.nomesAcompanhantes.trim()
-      : acompanhantesConviteCadastro;
 
   const { primeiro, segundo, monograma } = EVENTO.noivos;
   return (
-    <main className="invite-wall-texture-bg min-h-screen">
-      <div className={`${inviteColuna} relative`}>
+    <main className="invite-wall-texture-bg min-h-screen pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10">
+      <div className={`${inviteColuna} relative pb-6 sm:pb-8`}>
         {/* Moldura lateral/inferior (atrás do conteúdo). Sem border-top: o fundo do conteúdo cobria o traço no meio. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute bottom-0 left-4 right-4 top-4 z-[5] border-x border-b border-invite-olive sm:inset-x-0 sm:top-5 md:top-6"
+          className="pointer-events-none absolute bottom-4 left-4 right-4 top-4 z-[5] border-x border-b border-invite-olive sm:bottom-5 sm:inset-x-0 sm:top-5 md:bottom-6 md:top-6"
         />
         {/* Traço superior contínuo, por cima do fundo das seções */}
         <div
@@ -269,14 +260,14 @@ export default async function ConvitePage({ searchParams }: Props) {
                   />
                   <NomesNoivosTitulo primeiro={primeiro} segundo={segundo} className="w-full px-1" />
                 </header>
-                <div className="mx-auto flex w-full max-w-full shrink-0 flex-col items-center px-0 pt-4 sm:max-w-xl sm:pt-5 md:max-w-3xl md:pt-6">
+                <div className="mx-auto flex w-full max-w-full shrink-0 translate-y-6 flex-col items-center px-0 pt-4 sm:max-w-xl sm:translate-y-8 sm:pt-5 md:max-w-3xl md:translate-y-10 md:pt-6">
                   <blockquote className="mx-auto w-full max-w-[30rem] shrink-0 px-1 text-center sm:max-w-xl md:max-w-xl sm:px-3">
-                    <p className="font-heading text-[1.38rem] italic leading-snug text-invite-olive sm:text-[1.52rem] md:text-[1.65rem] sm:leading-relaxed">
+                    <p className="font-heading text-[1.08rem] italic leading-snug text-invite-olive sm:text-[1.38rem] md:text-[1.52rem] sm:leading-relaxed">
                       {"\u201c"}
                       {COLOSSENSES_3_14_NVI}
                       {"\u201d"}
                     </p>
-                    <footer className="font-invite-caps mt-6 text-[1.12rem] font-medium uppercase tracking-[0.22em] text-invite-olive sm:text-[1.28rem] sm:tracking-[0.24em] md:text-[1.38rem]">
+                    <footer className="font-invite-caps mt-4 text-[0.88rem] font-medium uppercase tracking-[0.18em] text-invite-olive sm:mt-5 sm:text-[1.12rem] sm:tracking-[0.22em] md:mt-6 md:text-[1.28rem] md:tracking-[0.24em]">
                       Colossenses 3:14
                     </footer>
                   </blockquote>
@@ -336,15 +327,10 @@ export default async function ConvitePage({ searchParams }: Props) {
                 {EVENTO.local.endereco}
               </p>
 
-              <ConviteResumoConvidado
-                nome={nome}
-                acompanhantesTexto={acompanhantesExibir}
-                presencaConfirmada={presencaConfirmada}
-              />
             </div>
           </section>
 
-          <section className="flex flex-col justify-start pt-2 pb-10 sm:pt-3 sm:pb-12">
+          <section className="flex flex-col justify-start pt-2 pb-14 sm:pt-3 sm:pb-16 md:pb-[4.5rem]">
             <div className="w-full py-4 sm:py-6">
               <BannerPresencaConvite
                 token={token}
@@ -379,13 +365,22 @@ export default async function ConvitePage({ searchParams }: Props) {
                     </div>
                     {EVENTO.local.mapUrl ? (
                       <div className="flex min-w-0 justify-center">
-                        <IconeCirculo href={EVENTO.local.mapUrl} externo rotulo="Como chegar">
+                        <IconeCirculo
+                          href={EVENTO.local.mapUrl}
+                          externo
+                          rotulo={
+                            <>
+                              <span className="block">Como</span>
+                              <span className="block">chegar</span>
+                            </>
+                          }
+                        >
                           <IconePin />
                         </IconeCirculo>
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex w-full justify-center pt-1 sm:pt-2">
+                  <div className="flex w-full justify-center pt-6 sm:pt-7">
                     <BlocoPixInformativo titular={CONVITE_PIX.titular} chave={CONVITE_PIX.chave} />
                   </div>
                 </div>

@@ -12,7 +12,9 @@ import {
   buildExternalReference,
   canUseMercadoPagoAutoReturn,
   formatMercadoPagoApiError,
+  getMercadoPagoTaxaCartaoPercent,
   getCheckoutBaseUrl,
+  parseCatalogPreco,
   isMercadoPagoSandboxCheckoutUrl,
   mercadoPagoCollectorIdFromAccessToken,
   mercadoPagoCollectorIdFromPreferenceId,
@@ -77,10 +79,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: resolved.error }, { status: 400 });
   }
 
-  const lineItems = buildMercadoPagoLineItems(resolved.items, itemIdFromTitle);
+  const taxaCartaoPercent = getMercadoPagoTaxaCartaoPercent();
+  const lineItems = buildMercadoPagoLineItems(resolved.items, itemIdFromTitle, taxaCartaoPercent);
   if ("error" in lineItems) {
     return NextResponse.json({ erro: lineItems.error }, { status: 400 });
   }
+
+  const subtotalCatalogo = resolved.items.reduce((s, it) => {
+    const n = parseCatalogPreco(it.preco);
+    return s + (n ?? 0);
+  }, 0);
 
   let externalReference: string;
   try {
@@ -165,6 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     const total = lineItems.items.reduce((s, it) => s + it.unit_price, 0);
+    const subtotal = Math.round(subtotalCatalogo * 100) / 100;
     const checkoutHost = new URL(initPoint).hostname;
 
     return NextResponse.json({
@@ -174,6 +183,9 @@ export async function POST(request: NextRequest) {
       checkout_host: checkoutHost,
       collector_id: collectorId,
       total,
+      subtotal,
+      taxa_cartao_percent: taxaCartaoPercent,
+      taxa_cartao_valor: Math.round((total - subtotal) * 100) / 100,
       quantidade: nomes.length,
     });
   } catch (err) {

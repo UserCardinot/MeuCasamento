@@ -69,6 +69,20 @@ export function mercadoPagoCollectorIdFromPreferenceId(preferenceId: string | un
   return m?.[1] ?? null;
 }
 
+/**
+ * Percentual embutido no checkout com cartão (repasse da tarifa MP).
+ * MERCADOPAGO_TAXA_PERCENT=0 desativa. Padrão: 5.
+ */
+export function getMercadoPagoTaxaCartaoPercent(): number {
+  const raw = process.env.MERCADOPAGO_TAXA_PERCENT?.trim();
+  if (raw === "0" || raw?.toLowerCase() === "false") return 0;
+  if (raw) {
+    const n = Number(String(raw).replace(",", "."));
+    if (Number.isFinite(n) && n >= 0 && n < 50) return Math.round(n * 100) / 100;
+  }
+  return 5;
+}
+
 export function shouldUseMercadoPagoSandbox(accessToken: string): boolean {
   const flag = process.env.MERCADOPAGO_SANDBOX?.trim().toLowerCase();
   if (flag === "true" || flag === "1" || flag === "yes") return true;

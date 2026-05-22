@@ -33,6 +33,23 @@ export function formatPresentesRegistro(nomes: string[], sufixo?: string): strin
   return sufixo ? `${base} (${sufixo})` : base;
 }
 
+export function arredondarMoedaBRL(valor: number): number {
+  return Math.round(valor * 100) / 100;
+}
+
+/** Valor a cobrar no cartão para você receber ~`subtotal` após a tarifa percentual. */
+export function valorComTaxaCartao(subtotal: number, taxaPercent: number): number {
+  if (taxaPercent <= 0 || subtotal <= 0) return arredondarMoedaBRL(subtotal);
+  return arredondarMoedaBRL(subtotal / (1 - taxaPercent / 100));
+}
+
+export function calcularResumoTaxaCartao(subtotal: number, taxaPercent: number) {
+  const base = arredondarMoedaBRL(subtotal);
+  const total = valorComTaxaCartao(base, taxaPercent);
+  const taxa = arredondarMoedaBRL(total - base);
+  return { subtotal: base, taxa, total, taxaPercent };
+}
+
 export function somaPrecosCatalogo(presentes: { preco: string }[]): number | null {
   let total = 0;
   for (const p of presentes) {
@@ -67,7 +84,8 @@ export function resolvePresentesCatalogItems(
 
 export function buildMercadoPagoLineItems(
   catalogItems: PresenteCatalogo[],
-  itemIdFromTitle: (title: string) => string
+  itemIdFromTitle: (title: string) => string,
+  taxaCartaoPercent = 0
 ): { items: { id: string; title: string; quantity: number; currency_id: string; unit_price: number }[] } | { error: string } {
   const mpItems: {
     id: string;
@@ -85,12 +103,17 @@ export function buildMercadoPagoLineItems(
         error: `O item "${item.nome}" precisa ter preço na lista para pagamento com cartão.`,
       };
     }
+    const unitPrice =
+      taxaCartaoPercent > 0
+        ? valorComTaxaCartao(amountRes.amount, taxaCartaoPercent)
+        : amountRes.amount;
+
     mpItems.push({
       id: `${itemIdFromTitle(item.nome)}-${i}`,
       title: `Presente: ${item.nome.slice(0, 200)}`,
       quantity: 1,
       currency_id: "BRL",
-      unit_price: amountRes.amount,
+      unit_price: unitPrice,
     });
   }
 

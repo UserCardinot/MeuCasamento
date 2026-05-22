@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getMercadoPagoTaxaCartaoPercent,
   mercadoPagoCollectorIdFromAccessToken,
   shouldUseMercadoPagoSandbox,
 } from "@/lib/mercadopago-shared";
@@ -32,6 +33,7 @@ export async function GET() {
     sandbox,
     collector_id,
     ambiente: sandbox ? "teste" : "producao",
+    taxa_cartao_percent: getMercadoPagoTaxaCartaoPercent(),
     ...(aviso ? { aviso } : {}),
   });
 }

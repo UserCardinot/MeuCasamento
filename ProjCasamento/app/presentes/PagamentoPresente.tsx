@@ -117,9 +117,8 @@ export default function PagamentoPresente({ token, presentes }: Props) {
       {metodo === "cartao" && (
         <div className="space-y-5 border-t border-invite-olive/20 pt-8">
           <p className="font-sans text-sm leading-relaxed text-invite-olive/75">
-            Você será direcionado ao checkout do Mercado Pago com{" "}
-            {presentes.length === 1 ? "este item" : "todos os itens"} — o valor total é a soma dos
-            presentes selecionados.
+            Você será direcionado ao checkout do Mercado Pago. No cartão, o total inclui uma taxa
+            estimada do Mercado Pago (além do valor do presente na lista). No Pix, vale o valor da lista.
           </p>
           <AvisoCartaoTesteMP />
           <FormMercadoPago token={token} presentesNomes={nomes} totalSugerido={totalSugerido} />
