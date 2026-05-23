@@ -22,10 +22,10 @@ const inviteColuna =
   "mx-auto w-full max-w-[210mm] px-5 sm:px-8 md:px-10";
 
 const inviteAtalhoCirculoBtn =
-  "flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-invite-olive text-white shadow-sm transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-invite-olive sm:h-[4.25rem] sm:w-[4.25rem]";
+  "flex h-[3.35rem] w-[3.35rem] shrink-0 items-center justify-center rounded-full bg-invite-olive text-white shadow-sm transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-invite-olive sm:h-[3.6rem] sm:w-[3.6rem]";
 
 const inviteAtalhoRotulo =
-  "mt-2.5 max-w-[8.5rem] text-center font-invite-caps text-[0.82rem] font-medium uppercase leading-snug tracking-[0.1em] text-invite-olive sm:max-w-[9.5rem] sm:text-[0.9rem] sm:tracking-[0.12em] md:max-w-[10.5rem] md:text-[0.95rem]";
+  "mt-2 max-w-[7.5rem] text-center font-invite-caps text-[0.72rem] font-medium uppercase leading-snug tracking-[0.09em] text-invite-olive sm:max-w-[8.5rem] sm:text-[0.78rem] sm:tracking-[0.1em] md:max-w-[9.5rem] md:text-[0.82rem]";
 
 function NomesNoivosTitulo({
   primeiro,
@@ -73,7 +73,7 @@ function IconeCirculo({
   const inner = (
     <>
       <span className={inviteAtalhoCirculoBtn}>{children}</span>
-      <span className={`${inviteAtalhoRotulo} flex min-h-[3.5rem] flex-col justify-center sm:min-h-[3.75rem]`}>
+      <span className={`${inviteAtalhoRotulo} flex min-h-[2.75rem] flex-col justify-center sm:min-h-[3rem]`}>
         {rotulo}
       </span>
     </>
@@ -101,7 +101,7 @@ function IconeCirculo({
 
 function IconeCheck() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M6 12.5l4 4 8-9"
         stroke="currentColor"
@@ -115,7 +115,7 @@ function IconeCheck() {
 
 function IconePresente() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M4 10h16v10H4V10z" stroke="currentColor" strokeWidth="1.4" />
       <path d="M12 10V20M4 10h16" stroke="currentColor" strokeWidth="1.4" />
       <path
@@ -130,7 +130,7 @@ function IconePresente() {
 
 function IconePin() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z"
         stroke="currentColor"
@@ -145,7 +145,7 @@ function IconePin() {
 /** Ícone alusivo ao Pix (carteira digital; não reproduz a marca oficial). */
 function IconePix() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M5 9h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z"
         stroke="currentColor"
@@ -162,21 +162,21 @@ function IconePix() {
 function BlocoPixInformativo({ titular, chave }: { titular: string; chave: string }) {
   return (
     <div
-      className="flex w-full max-w-[20rem] flex-col items-center sm:max-w-[22rem]"
+      className="flex w-full max-w-[18rem] flex-col items-center sm:max-w-[20rem]"
       role="group"
       aria-label={`Pix: titular ${titular}, chave ${chave}`}
     >
       <span className={`${inviteAtalhoCirculoBtn} pointer-events-none`}>
         <IconePix />
       </span>
-      <div className="mt-4 w-full border border-invite-olive/35 px-4 py-4 text-center sm:px-5 sm:py-5">
-        <p className="mt-0 w-full text-center font-invite-caps text-[0.9rem] font-semibold uppercase tracking-[0.12em] text-invite-olive sm:text-[0.95rem] sm:tracking-[0.14em]">
+      <div className="mt-3 w-full border border-invite-olive/35 px-3 py-3 text-center sm:px-4 sm:py-4">
+        <p className="mt-0 w-full text-center font-invite-caps text-[0.8rem] font-semibold uppercase tracking-[0.1em] text-invite-olive sm:text-[0.85rem] sm:tracking-[0.12em]">
           Pix
         </p>
-        <p className="font-sans mt-3 text-[0.9rem] font-medium normal-case leading-snug text-invite-olive sm:text-[0.94rem]">
+        <p className="font-sans mt-2.5 text-[0.82rem] font-medium normal-case leading-snug text-invite-olive sm:text-[0.86rem]">
           {titular}
         </p>
-        <p className="font-sans mt-1.5 break-all text-[0.9rem] font-medium normal-case leading-snug text-invite-olive/90 sm:text-[0.94rem]">
+        <p className="font-sans mt-1.5 break-all text-[0.82rem] font-medium normal-case leading-snug text-invite-olive/90 sm:text-[0.86rem]">
           {chave}
         </p>
       </div>
@@ -301,18 +301,10 @@ export default async function ConvitePage({ searchParams }: Props) {
                 alt={`Casamento ${primeiro} & ${segundo}`}
                 fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
               />
-              <div className="mt-4 flex w-full flex-col items-center sm:mt-5">
-                <span
-                  className="mb-1.5 block h-1.5 w-1.5 shrink-0 rounded-full bg-invite-olive/45 sm:mb-2"
-                  aria-hidden
-                />
+              <div className="mt-4 mb-5 flex w-full flex-col items-center sm:mt-5 sm:mb-6">
                 <ContagemRegressiva variant="invite" compact />
-                <span
-                  className="mt-3 mb-5 block h-1.5 w-1.5 shrink-0 rounded-full bg-invite-olive/45 sm:mt-4 sm:mb-6"
-                  aria-hidden
-                />
               </div>
-              <p className="font-invite-caps mx-auto mt-2 max-w-[18rem] text-center text-[0.88rem] font-bold uppercase leading-relaxed tracking-[0.1em] text-balance text-invite-olive sm:mt-3 sm:max-w-[22rem] sm:text-[0.96rem] sm:tracking-[0.11em] md:max-w-[24rem] md:text-[1.02rem] md:tracking-[0.12em]">
+              <p className="font-invite-caps mx-auto mt-7 max-w-[18rem] text-center text-[0.88rem] font-bold uppercase leading-relaxed tracking-[0.1em] text-balance text-invite-olive sm:mt-9 sm:max-w-[22rem] sm:text-[0.96rem] sm:tracking-[0.11em] md:max-w-[24rem] md:text-[1.02rem] md:tracking-[0.12em]">
                 Com as benções de Deus
               </p>
 
