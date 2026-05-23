@@ -89,13 +89,17 @@ export async function GET() {
       data: row[3],
     }));
 
-    const catalogoFormatado = (catalogoPresentes as (string | number)[][]).map((row) => ({
-      nome: String(row[0] ?? ""),
-      preco: String(row[1] ?? ""),
-      url: String(row[2] ?? ""),
-      imagem: String(row[3] ?? ""),
-      ativo: String(row[4] ?? "Sim"),
-    }));
+    const catalogoFormatado = (catalogoPresentes as (string | number)[][]).map((row) => {
+      const nome = String(row[0] ?? "");
+      return {
+        nomeOriginal: nome,
+        nome,
+        preco: String(row[1] ?? ""),
+        url: String(row[2] ?? ""),
+        imagem: String(row[3] ?? ""),
+        ativo: String(row[4] ?? "Sim"),
+      };
+    });
 
     return NextResponse.json({
       convidados: convidadosFormatados,

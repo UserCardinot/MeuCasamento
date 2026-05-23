@@ -208,6 +208,92 @@ export async function updateConvidadoRow(
   return "updated";
 }
 
+const CATALOGO_PRESENTES_SHEET = "CatalogoPresentes";
+
+function findCatalogoPresenteRowIndex(rows: unknown[][], nomeOriginal: string): number {
+  const key = nomeOriginal.trim();
+  return rows.findIndex((row) => String(row[0] ?? "").trim() === key);
+}
+
+/**
+ * Atualiza item do catálogo (A:E = nome | preco | url | imagem | ativo).
+ * `nomeOriginal` identifica a linha; `fields.nome` é o novo nome exibido.
+ */
+export async function updateCatalogoPresenteRow(
+  spreadsheetId: string,
+  nomeOriginal: string,
+  fields: { nome: string; preco: string; url: string; imagem: string; ativo: string }
+): Promise<"updated" | "not_found" | "duplicate_nome"> {
+  const sheetTitle = CATALOGO_PRESENTES_SHEET;
+  const rows = await readFromSheet(spreadsheetId, `${sheetTitle}!A2:E`);
+  const idx = findCatalogoPresenteRowIndex(rows, nomeOriginal);
+  if (idx === -1) return "not_found";
+
+  const novoNome = fields.nome.trim();
+  const nomeAntigo = nomeOriginal.trim();
+  if (novoNome !== nomeAntigo) {
+    const duplicado = rows.some(
+      (row, i) => i !== idx && String(row[0] ?? "").trim() === novoNome
+    );
+    if (duplicado) return "duplicate_nome";
+  }
+
+  const ativoNorm = fields.ativo.trim().toLowerCase().startsWith("s") ? "Sim" : "Não";
+  const newRow = [novoNome, fields.preco.trim(), fields.url.trim(), fields.imagem.trim(), ativoNorm];
+
+  const sheetRow = idx + 2;
+  const range = `${sheetTitle}!A${sheetRow}:E${sheetRow}`;
+
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [newRow] },
+  });
+  return "updated";
+}
+
+/** Remove item do catálogo pelo nome (coluna A). */
+export async function deleteCatalogoPresenteRow(
+  spreadsheetId: string,
+  nomeOriginal: string
+): Promise<"deleted" | "not_found"> {
+  const sheetTitle = CATALOGO_PRESENTES_SHEET;
+  const sheetId = await getSheetIdByTitle(spreadsheetId, sheetTitle);
+  if (sheetId === null) {
+    throw new Error(`Aba "${sheetTitle}" não encontrada na planilha`);
+  }
+
+  const rows = await readFromSheet(spreadsheetId, `${sheetTitle}!A2:E`);
+  const idx = findCatalogoPresenteRowIndex(rows, nomeOriginal);
+  if (idx === -1) return "not_found";
+
+  const startIndex = idx + 1;
+
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex,
+              endIndex: startIndex + 1,
+            },
+          },
+        },
+      ],
+    },
+  });
+  return "deleted";
+}
+
 /**
  * Busca convidado pelo token na aba Convidados
  * Retorna a linha [token, nome, acompanhantes, contato, data, origem?] ou null

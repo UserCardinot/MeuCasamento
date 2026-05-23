@@ -7,6 +7,7 @@ import EnvioEmLote from "./EnvioEmLote";
 import AddPresente from "./AddPresente";
 import SincronizarPagamentoMP from "./SincronizarPagamentoMP";
 import EditarConvidadoModal from "./EditarConvidadoModal";
+import EditarPresenteModal from "./EditarPresenteModal";
 import { contarPessoasNoConvite, totalPessoasConvidadas } from "@/lib/contagemConvidados";
 import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 
@@ -24,7 +25,7 @@ type DadosAdmin = {
   presentes: { token: string; nome?: string; presente: string; valor: string; data: string }[];
   uploads: { tipo: string; nome: string; arquivo: string; data: string }[];
   recados?: { token: string; nome: string; mensagem: string; data: string }[];
-  catalogoPresentes?: { nome: string; preco: string; url: string; imagem: string; ativo: string }[];
+  catalogoPresentes?: { nomeOriginal: string; nome: string; preco: string; url: string; imagem: string; ativo: string }[];
   resumo: { totalConvidados: number; totalPresencas: number; totalPresentes: number; totalUploads: number; totalRecados?: number };
 };
 
@@ -177,12 +178,21 @@ export default function Dashboard() {
   const [buscaConvidados, setBuscaConvidados] = useState("");
   const [filtroOrigemConvidados, setFiltroOrigemConvidados] = useState("");
   const [excluindoToken, setExcluindoToken] = useState<string | null>(null);
+  const [excluindoPresenteNome, setExcluindoPresenteNome] = useState<string | null>(null);
   const [editandoConvidado, setEditandoConvidado] = useState<{
     token: string;
     nome: string;
     acompanhantes: string;
     contato: string;
     origem: string;
+  } | null>(null);
+  const [editandoPresente, setEditandoPresente] = useState<{
+    nomeOriginal: string;
+    nome: string;
+    preco: string;
+    url: string;
+    imagem: string;
+    ativo: string;
   } | null>(null);
   const [filtroPresenca, setFiltroPresenca] = useState<"todos" | "sim" | "nao">("todos");
 
@@ -227,6 +237,35 @@ export default function Dashboard() {
   }
 
   const fecharEdicaoConvidado = useCallback(() => setEditandoConvidado(null), []);
+  const fecharEdicaoPresente = useCallback(() => setEditandoPresente(null), []);
+
+  async function excluirPresente(nomeOriginal: string, nome: string) {
+    const ok = window.confirm(
+      `Excluir "${nome}" do catálogo?\n\nO item deixa de aparecer na lista de presentes. Compras já registradas na planilha não são apagadas.`
+    );
+    if (!ok) return;
+
+    setExcluindoPresenteNome(nomeOriginal);
+    try {
+      const res = await fetch("/api/admin/remover-presente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nomeOriginal }),
+      });
+      if (res.status === 401) {
+        router.refresh();
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as { erro?: string };
+      if (!res.ok) {
+        window.alert(data.erro || "Não foi possível excluir.");
+        return;
+      }
+      await carregar();
+    } finally {
+      setExcluindoPresenteNome(null);
+    }
+  }
 
   async function excluirConvidado(token: string, nome: string) {
     const ok = window.confirm(
@@ -808,20 +847,38 @@ export default function Dashboard() {
               {dados.catalogoPresentes && dados.catalogoPresentes.length > 0 ? (
                 <div className={`mt-6 ${TABLE_WRAP}`}>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-sm leading-relaxed">
+                    <table className="w-full min-w-[720px] text-sm leading-relaxed">
                       <thead>
                         <tr className={THEAD_ROW}>
                           <th className="px-4 py-3">Nome</th>
                           <th className="px-4 py-3">Preço</th>
+                          <th className="px-4 py-3">Ativo</th>
                           <th className="px-4 py-3">URL</th>
                           <th className="px-4 py-3">Imagem</th>
+                          <th className="px-4 py-3">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
-                        {dados.catalogoPresentes.map((p, i) => (
-                          <tr key={i} className="transition hover:bg-zinc-50/80">
+                        {dados.catalogoPresentes.map((p) => {
+                          const inativo = !p.ativo.trim().toLowerCase().startsWith("s");
+                          return (
+                          <tr
+                            key={p.nomeOriginal}
+                            className={`transition hover:bg-zinc-50/80 ${inativo ? "opacity-60" : ""}`}
+                          >
                             <td className="px-4 py-3.5 font-medium text-zinc-900">{p.nome}</td>
                             <td className="px-4 py-3.5 text-zinc-600">{p.preco ? `R$ ${p.preco}` : "—"}</td>
+                            <td className="px-4 py-3.5">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  inativo
+                                    ? "bg-zinc-100 text-zinc-600"
+                                    : "bg-casamento-pastel/60 text-casamento-oliva-escuro"
+                                }`}
+                              >
+                                {inativo ? "Não" : "Sim"}
+                              </span>
+                            </td>
                             <td className="px-4 py-3.5">
                               {p.url ? (
                                 <a
@@ -851,8 +908,38 @@ export default function Dashboard() {
                                 <span className="text-zinc-400">—</span>
                               )}
                             </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditandoPresente({
+                                      nomeOriginal: p.nomeOriginal,
+                                      nome: p.nome,
+                                      preco: p.preco,
+                                      url: p.url,
+                                      imagem: p.imagem,
+                                      ativo: p.ativo,
+                                    })
+                                  }
+                                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => excluirPresente(p.nomeOriginal, p.nome)}
+                                  disabled={excluindoPresenteNome === p.nomeOriginal}
+                                  className="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  title="Excluir do catálogo"
+                                >
+                                  {excluindoPresenteNome === p.nomeOriginal ? "Excluindo…" : "Excluir"}
+                                </button>
+                              </div>
+                            </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1042,6 +1129,7 @@ export default function Dashboard() {
         </main>
       </div>
       <EditarConvidadoModal convidado={editandoConvidado} onClose={fecharEdicaoConvidado} onSalvo={carregar} />
+      <EditarPresenteModal presente={editandoPresente} onClose={fecharEdicaoPresente} onSalvo={carregar} />
     </div>
   );
 }
