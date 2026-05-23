@@ -13,13 +13,15 @@ type MetodoPagamento = "pix" | "cartao" | "";
 type Props = {
   token: string;
   presentes: Presente[];
+  /** Layout reduzido para a sidebar do carrinho */
+  compact?: boolean;
 };
 
 function opcaoMetodoClass(ativo: boolean) {
   return `font-invite-caps flex flex-1 items-center justify-center gap-2 border py-4 px-3 text-[0.72rem] font-semibold uppercase tracking-[0.12em] transition-all sm:text-xs md:py-5 ${
     ativo
       ? "border-invite-olive bg-invite-olive text-white shadow-sm"
-      : "border-invite-olive/30 bg-white/70 text-invite-olive hover:border-invite-olive/50"
+      : "border-invite-olive/30 bg-white text-invite-olive hover:border-invite-olive/50 hover:bg-white"
   }`;
 }
 
@@ -46,21 +48,25 @@ function IconeCartao() {
   );
 }
 
-export default function PagamentoPresente({ token, presentes }: Props) {
+export default function PagamentoPresente({ token, presentes, compact = false }: Props) {
   const [metodo, setMetodo] = useState<MetodoPagamento>("");
   const nomes = useMemo(() => presentes.map((p) => p.nome), [presentes]);
   const totalSugerido = useMemo(() => somaPrecosCatalogo(presentes), [presentes]);
 
   return (
-    <div className="space-y-8">
-      <div className="text-center sm:text-left">
-        <p className="font-invite-caps text-[0.68rem] font-medium uppercase tracking-[0.2em] text-invite-olive/75">
+    <div className={compact ? "space-y-4" : "space-y-8"}>
+      <div className={compact ? "text-left" : "text-center sm:text-left"}>
+        <p className="font-invite-caps text-[0.62rem] font-medium uppercase tracking-[0.16em] text-invite-olive/75">
           Como deseja pagar?
         </p>
-        <h2 className="font-heading mt-2 text-xl italic text-invite-olive sm:text-2xl">
+        <h2
+          className={`font-heading mt-1.5 italic text-invite-olive ${
+            compact ? "text-base leading-snug" : "mt-2 text-xl sm:text-2xl"
+          }`}
+        >
           {presentes.length === 1 ? presentes[0]!.nome : `${presentes.length} presentes`}
         </h2>
-        <ul className="font-sans mt-3 space-y-1 text-sm text-invite-olive/85">
+        <ul className={`font-sans space-y-0.5 text-invite-olive/85 ${compact ? "mt-2 text-xs" : "mt-3 text-sm"}`}>
           {presentes.map((p) => (
             <li key={p.nome}>
               {p.nome}
@@ -76,7 +82,7 @@ export default function PagamentoPresente({ token, presentes }: Props) {
       </div>
 
       <div
-        className="grid grid-cols-2 gap-3"
+        className={`grid grid-cols-2 gap-2 ${compact ? "" : "gap-3"}`}
         role="group"
         aria-label="Forma de pagamento"
       >
@@ -115,8 +121,8 @@ export default function PagamentoPresente({ token, presentes }: Props) {
       )}
 
       {metodo === "cartao" && (
-        <div className="space-y-5 border-t border-invite-olive/20 pt-8">
-          <p className="font-sans text-sm leading-relaxed text-invite-olive/75">
+        <div className={`space-y-4 border-t border-invite-olive/20 ${compact ? "pt-4" : "space-y-5 pt-8"}`}>
+          <p className={`font-sans leading-relaxed text-invite-olive/75 ${compact ? "text-xs" : "text-sm"}`}>
             Você será direcionado ao checkout do Mercado Pago. No cartão, o total inclui uma taxa
             estimada do Mercado Pago (além do valor do presente na lista). No Pix, vale o valor da lista.
           </p>

@@ -1,37 +1,41 @@
 "use client";
 
 import { formatPrecoBRL } from "@/lib/presentes-checkout";
-import { presentesBtnOutline, presentesBtnPrimary, presentesCard } from "./presentesTheme";
+import { presentesBtnPrimary, presentesSidebar } from "./presentesTheme";
 
 type Presente = { nome: string; preco: string; url: string; imagem: string };
 
 type Props = {
   itens: Presente[];
   totalSugerido: number | null;
-  mostrarPagamento: boolean;
   onRemover: (nome: string) => void;
   onLimpar: () => void;
   onContinuar: () => void;
+  onFechar?: () => void;
   className?: string;
 };
 
 function precoItem(preco: string | undefined): string {
-  if (!preco?.trim()) return "Sem preço na lista";
+  if (!preco?.trim()) return "Sem preço";
   return `R$ ${preco.replace(".", ",")}`;
 }
 
-function IconeCarrinho() {
+export function IconeSacolaCompras({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
       <path
-        d="M6 6h15l-1.5 9h-12L5 3H2"
+        d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M16 10a4 4 0 01-8 0"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
-      <circle cx="9" cy="20" r="1.25" fill="currentColor" />
-      <circle cx="18" cy="20" r="1.25" fill="currentColor" />
     </svg>
   );
 }
@@ -39,107 +43,140 @@ function IconeCarrinho() {
 export default function CarrinhoPresentes({
   itens,
   totalSugerido,
-  mostrarPagamento,
   onRemover,
   onLimpar,
   onContinuar,
+  onFechar,
   className = "",
 }: Props) {
-  if (itens.length === 0) return null;
+  const vazio = itens.length === 0;
 
   return (
     <aside
-      className={`${presentesCard} overflow-hidden ${className}`}
-      aria-label={`Carrinho com ${itens.length} ${itens.length === 1 ? "item" : "itens"}`}
+      className={`${presentesSidebar} ${className}`}
+      aria-label={vazio ? "Carrinho de presentes vazio" : `Carrinho com ${itens.length} itens`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-invite-olive/20 bg-invite-olive/8 px-4 py-3.5 sm:px-5">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-invite-olive/20 bg-invite-olive/10 px-4 py-3.5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-full border border-invite-olive/25 bg-white/80 text-invite-olive">
-            <IconeCarrinho />
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-invite-olive px-1 font-sans text-[0.6rem] font-bold text-white">
-              {itens.length}
-            </span>
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-invite-olive/30 bg-white text-invite-olive shadow-sm">
+            <IconeSacolaCompras className="h-[1.15rem] w-[1.15rem]" />
+            {!vazio && (
+              <span className="absolute -right-1 -top-1 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-invite-olive px-1 font-sans text-[0.58rem] font-bold leading-none text-white">
+                {itens.length}
+              </span>
+            )}
           </span>
           <div className="min-w-0">
-            <p className="font-invite-caps text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-invite-olive">
-              Sua seleção
+            <p className="font-invite-caps text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-invite-olive">
+              Carrinho
             </p>
-            <p className="font-sans text-xs text-invite-olive/70">Revise os itens antes de pagar</p>
+            <p className="font-sans truncate text-xs text-invite-olive/65">
+              {vazio ? "Nenhum item ainda" : `${itens.length} ${itens.length === 1 ? "item" : "itens"}`}
+            </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onLimpar}
-          className="font-invite-caps shrink-0 text-[0.65rem] font-medium uppercase tracking-[0.12em] text-invite-olive/65 underline-offset-2 hover:text-invite-olive hover:underline"
-        >
-          Limpar
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {!vazio && (
+            <button
+              type="button"
+              onClick={onLimpar}
+              className="font-invite-caps shrink-0 text-[0.62rem] font-medium uppercase tracking-[0.1em] text-invite-olive/60 underline-offset-2 hover:text-invite-olive hover:underline"
+            >
+              Limpar
+            </button>
+          )}
+          {onFechar && (
+            <button
+              type="button"
+              onClick={onFechar}
+              className="flex h-8 w-8 items-center justify-center border border-invite-olive/25 bg-white text-invite-olive/70 transition-colors hover:border-invite-olive/45 hover:text-invite-olive"
+              aria-label="Fechar carrinho"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
-      <ul className="max-h-[min(20rem,50vh)] divide-y divide-invite-olive/15 overflow-y-auto">
-        {itens.map((p) => (
-          <li key={p.nome} className="flex gap-3 bg-white/50 px-4 py-3.5 sm:gap-4 sm:px-5 sm:py-4">
-            {p.imagem ? (
-              <div className="h-16 w-16 shrink-0 overflow-hidden border border-invite-olive/15 bg-invite-cream/60 sm:h-[4.5rem] sm:w-[4.5rem]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.imagem} alt="" className="h-full w-full object-cover" />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {vazio ? (
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-invite-olive/30 bg-white/60 text-invite-olive/40">
+              <IconeSacolaCompras className="h-7 w-7" />
+            </span>
+            <p className="font-sans text-sm text-invite-olive/70">
+              Selecione presentes na lista ao lado para montar seu carrinho.
+            </p>
+          </div>
+        ) : (
+          <>
+            <ul className="min-h-0 flex-1 divide-y divide-invite-olive/12 overflow-y-auto overscroll-y-contain">
+              {itens.map((p) => (
+                <li key={p.nome} className="flex gap-2.5 bg-white/40 px-3 py-2.5 sm:px-4 sm:py-3">
+                  {p.imagem ? (
+                    <div className="h-12 w-12 shrink-0 overflow-hidden border border-invite-olive/15 bg-invite-cream/60">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.imagem} alt="" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center border border-invite-olive/15 bg-invite-cream/60"
+                      aria-hidden
+                    >
+                      <span className="font-heading text-lg italic text-invite-olive/30">♥</span>
+                    </div>
+                  )}
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-1">
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 font-heading text-sm italic leading-snug text-invite-olive">
+                        {p.nome}
+                      </p>
+                      <p className="font-invite-caps mt-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-invite-olive/85">
+                        {precoItem(p.preco)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemover(p.nome)}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center border border-invite-olive/20 bg-white/90 text-invite-olive/60 transition-colors hover:border-invite-olive/40 hover:text-invite-olive"
+                      aria-label={`Remover ${p.nome}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path
+                          d="M6 6l12 12M18 6L6 18"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="shrink-0 border-t border-invite-olive/20 bg-invite-cream/95 px-4 py-3.5">
+              <div className="flex items-end justify-between gap-3">
+                <span className="font-invite-caps text-[0.65rem] font-medium uppercase tracking-[0.12em] text-invite-olive/75">
+                  Total sugerido
+                </span>
+                <span className="font-heading text-xl italic tabular-nums text-invite-olive">
+                  {totalSugerido != null ? `R$ ${formatPrecoBRL(totalSugerido)}` : "—"}
+                </span>
               </div>
-            ) : (
-              <div
-                className="flex h-16 w-16 shrink-0 items-center justify-center border border-invite-olive/15 bg-invite-cream/60 sm:h-[4.5rem] sm:w-[4.5rem]"
-                aria-hidden
-              >
-                <span className="font-heading text-2xl italic text-invite-olive/35">♥</span>
-              </div>
-            )}
-            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-              <div className="min-w-0 pr-1">
-                <p className="font-heading text-base italic leading-snug text-invite-olive sm:text-lg">
-                  {p.nome}
-                </p>
-                <p className="font-invite-caps mt-1.5 text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-invite-olive">
-                  {precoItem(p.preco)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onRemover(p.nome)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center border border-invite-olive/25 bg-white/90 text-invite-olive/70 transition-colors hover:border-invite-olive/45 hover:bg-white hover:text-invite-olive"
-                aria-label={`Remover ${p.nome}`}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
+              <button type="button" onClick={onContinuar} className={`mt-3 ${presentesBtnPrimary}`}>
+                Continuar para pagar
               </button>
             </div>
-          </li>
-        ))}
-      </ul>
-
-      <div className="border-t border-invite-olive/20 bg-invite-cream/90 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex items-end justify-between gap-4">
-          <span className="font-invite-caps text-[0.72rem] font-medium uppercase tracking-[0.14em] text-invite-olive/80">
-            Total sugerido
-          </span>
-          <span className="font-heading text-2xl italic tabular-nums text-invite-olive sm:text-[1.65rem]">
-            {totalSugerido != null ? `R$ ${formatPrecoBRL(totalSugerido)}` : "—"}
-          </span>
-        </div>
-        <p className="font-sans mt-3 text-xs leading-relaxed text-invite-olive/65">
-          No cartão, o Mercado Pago cobra a soma dos itens com preço na lista.
-        </p>
-        <button
-          type="button"
-          onClick={onContinuar}
-          className={`mt-4 ${mostrarPagamento ? presentesBtnOutline : presentesBtnPrimary}`}
-        >
-          {mostrarPagamento ? "Ocultar pagamento" : "Continuar para pagar"}
-        </button>
+          </>
+        )}
       </div>
     </aside>
   );

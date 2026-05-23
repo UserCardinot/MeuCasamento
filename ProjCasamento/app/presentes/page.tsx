@@ -8,7 +8,7 @@ import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagam
 import ConfirmarRetornoMP from "./ConfirmarRetornoMP";
 import ListaPresentesConvidado from "./ListaPresentesConvidado";
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
-import { presentesColuna, presentesCard, presentesLinkVoltar } from "./presentesTheme";
+import { presentesLayoutLoja, presentesCard, presentesLinkVoltar } from "./presentesTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ function pickParam(v: string | string[] | undefined): string | undefined {
 function ErroPresentes({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
     <InvitePageShell className="flex min-h-screen flex-col items-center justify-center py-16">
-      <div className={presentesColuna}>
+      <div className={presentesLayoutLoja}>
         <div className={`${presentesCard} px-8 py-12 text-center`}>
           <p className="font-invite-caps text-lg font-medium tracking-wide text-invite-olive">{mensagem}</p>
           {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
@@ -107,25 +107,25 @@ export default async function PresentesPage({ searchParams }: Props) {
   const { primeiro, segundo } = EVENTO.noivos;
 
   return (
-    <InvitePageShell className="py-12 sm:py-16 md:py-20 lg:py-24">
-      <div className={`${presentesColuna} w-full`}>
+    <InvitePageShell className="py-8 sm:py-10 md:py-12">
+      <div className={`${presentesLayoutLoja} w-full`}>
         <Link href={`/convite?token=${encodeURIComponent(token)}`} className={presentesLinkVoltar}>
           ← Voltar ao convite
         </Link>
 
-        <div className={`${presentesCard} px-6 py-10 sm:px-10 sm:py-12 md:px-12 md:py-14`}>
-          <header className="mb-10 text-center md:mb-12">
-            <p className="font-invite-caps text-[0.72rem] font-medium uppercase tracking-[0.28em] text-invite-olive/80 sm:text-xs md:tracking-[0.32em]">
+        <div className={`${presentesCard} px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-11`}>
+          <header className="mb-6 border-b border-invite-olive/15 pb-6 text-center lg:mb-8 lg:text-left">
+            <p className="font-invite-caps text-[0.68rem] font-medium uppercase tracking-[0.24em] text-invite-olive/80 sm:text-xs">
               Lista de presentes
             </p>
-            <h1 className="font-heading mt-4 text-[1.65rem] italic leading-snug text-invite-olive sm:text-[1.85rem] md:text-[2.35rem]">
+            <h1 className="font-heading mt-2 text-[1.5rem] italic leading-snug text-invite-olive sm:text-[1.75rem] lg:text-[2rem]">
               Olá, {nome}
             </h1>
-            <p className="font-invite-caps mt-3 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-invite-olive sm:text-[0.72rem] md:text-sm md:tracking-[0.24em]">
+            <p className="font-invite-caps mt-2 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-invite-olive sm:text-xs">
               {primeiro} & {segundo}
             </p>
-            <p className="font-sans mx-auto mt-6 max-w-md text-sm leading-relaxed text-invite-olive/80 md:text-base">
-              Sua presença já é o maior presente. Se desejar contribuir, escolha um ou mais itens abaixo — Pix ou cartão.
+            <p className="font-sans mx-auto mt-3 max-w-xl text-sm leading-relaxed text-invite-olive/80 lg:mx-0">
+              Escolha os itens na lista e abra o carrinho pelo ícone no topo — Pix ou cartão.
             </p>
           </header>
 

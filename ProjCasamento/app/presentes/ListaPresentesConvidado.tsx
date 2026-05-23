@@ -1,10 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import CarrinhoPresentes from "./CarrinhoPresentes";
+import { useEffect, useMemo, useState } from "react";
+import AlertaCarrinhoPresentes from "./AlertaCarrinhoPresentes";
+import { IconeSacolaCompras } from "./CarrinhoPresentes";
+import DrawerCarrinhoPresentes from "./DrawerCarrinhoPresentes";
+import ModalPagamentoPresente from "./ModalPagamentoPresente";
 import PagamentoPresente from "./PagamentoPresente";
 import { matchBuscaCatalogoPresente, somaPrecosCatalogo } from "@/lib/presentes-checkout";
-import { presentesBtnOutline, presentesBtnPrimary, presentesCard, presentesFieldClass } from "./presentesTheme";
+import {
+  presentesBtnOutline,
+  presentesBtnPrimary,
+  presentesCard,
+  presentesFieldClass,
+} from "./presentesTheme";
 
 type Presente = { nome: string; preco: string; url: string; imagem: string };
 
@@ -14,10 +22,113 @@ type Props = {
   presenteRegistrado: { presente: string; valor?: string } | null;
 };
 
+function IconeBusca({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CardPresente({
+  presente,
+  selecionado,
+  onToggle,
+}: {
+  presente: Presente;
+  selecionado: boolean;
+  onToggle: () => void;
+}) {
+  const { nome, preco, url, imagem } = presente;
+
+  return (
+    <article
+      className={`flex gap-3 border p-3 transition-shadow sm:gap-3.5 sm:p-3.5 ${
+        selecionado
+          ? "border-invite-olive/55 bg-white shadow-sm ring-1 ring-invite-olive/25"
+          : "border-invite-olive/20 bg-white/75 hover:border-invite-olive/35 hover:bg-white/90"
+      }`}
+    >
+      {imagem ? (
+        <a
+          href={url || imagem}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden border border-invite-olive/15 bg-invite-cream/50 sm:h-20 sm:w-20"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imagem} alt={nome} className="h-full w-full object-cover" />
+          {selecionado && (
+            <span className="font-invite-caps absolute inset-x-0 bottom-0 bg-invite-olive/90 py-0.5 text-center text-[0.5rem] font-semibold uppercase tracking-wider text-white">
+              ✓
+            </span>
+          )}
+        </a>
+      ) : (
+        <div
+          className={`flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center border sm:h-20 sm:w-20 ${
+            selecionado ? "border-invite-olive/40 bg-invite-olive/10" : "border-invite-olive/15 bg-invite-cream/50"
+          }`}
+          aria-hidden
+        >
+          <span className="font-heading text-2xl italic text-invite-olive/25">♥</span>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 font-heading text-base italic leading-snug text-invite-olive sm:text-[1.05rem]">
+            {nome}
+          </h3>
+          {preco && (
+            <p className="font-invite-caps mt-1 text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-invite-olive/90">
+              R$ {preco.replace(".", ",")}
+            </p>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-invite-caps mt-1 inline-block text-[0.62rem] font-medium uppercase tracking-[0.12em] text-invite-olive/60 underline-offset-2 hover:text-invite-olive hover:underline"
+            >
+              Ver na loja
+            </a>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`${selecionado ? presentesBtnOutline : presentesBtnPrimary} !py-2.5 !text-[0.68rem] sm:!py-2.5`}
+          aria-pressed={selecionado}
+        >
+          {selecionado ? "Remover" : "Adicionar"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export default function ListaPresentesConvidado({ token, catalog, presenteRegistrado }: Props) {
   const [selecionados, setSelecionados] = useState<Presente[]>([]);
-  const [mostrarPagamento, setMostrarPagamento] = useState(false);
+  const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
+  const [carrinhoDrawerAberto, setCarrinhoDrawerAberto] = useState(false);
+  const [alertaCarrinhoOculto, setAlertaCarrinhoOculto] = useState(false);
   const [busca, setBusca] = useState("");
+
+  useEffect(() => {
+    if (selecionados.length === 0) setAlertaCarrinhoOculto(false);
+  }, [selecionados.length]);
+
+  function abrirPagamento() {
+    setCarrinhoDrawerAberto(false);
+    setModalPagamentoAberto(true);
+  }
+
+  function verCarrinho() {
+    setCarrinhoDrawerAberto(true);
+  }
 
   const catalogFiltrado = useMemo(
     () => catalog.filter((p) => matchBuscaCatalogoPresente(busca, p)),
@@ -27,21 +138,22 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
   const totalSugerido = useMemo(() => somaPrecosCatalogo(selecionados), [selecionados]);
 
   function togglePresente(p: Presente) {
-    setMostrarPagamento(false);
+    setModalPagamentoAberto(false);
     setSelecionados((prev) => {
       const ja = prev.some((x) => x.nome === p.nome);
       if (ja) return prev.filter((x) => x.nome !== p.nome);
+      setAlertaCarrinhoOculto(false);
       return [...prev, p];
     });
   }
 
   function removerDoCarrinho(nome: string) {
-    setMostrarPagamento(false);
+    setModalPagamentoAberto(false);
     setSelecionados((prev) => prev.filter((x) => x.nome !== nome));
   }
 
   function limparCarrinho() {
-    setMostrarPagamento(false);
+    setModalPagamentoAberto(false);
     setSelecionados([]);
   }
 
@@ -89,116 +201,139 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
     );
   }
 
+  const carrinhoProps = {
+    itens: selecionados,
+    totalSugerido,
+    onRemover: removerDoCarrinho,
+    onLimpar: limparCarrinho,
+    onContinuar: abrirPagamento,
+  };
+
+  const mostrarAlertaCarrinho =
+    selecionados.length > 0 &&
+    !alertaCarrinhoOculto &&
+    !carrinhoDrawerAberto &&
+    !modalPagamentoAberto;
+
   return (
     <>
-      <p className="font-sans mb-6 text-center text-sm text-invite-olive/75 sm:text-left">
-        Toque em <strong className="font-medium text-invite-olive">Selecionar</strong> nos presentes desejados.
-        Eles aparecem no carrinho ao lado (telas grandes) ou abaixo.
-      </p>
+      {mostrarAlertaCarrinho && (
+        <AlertaCarrinhoPresentes
+          variant="mobile"
+          quantidade={selecionados.length}
+          total={totalSugerido}
+          onVerCarrinho={verCarrinho}
+          onDispensar={() => setAlertaCarrinhoOculto(true)}
+        />
+      )}
 
-      <div className="xl:grid xl:grid-cols-[1fr_min(20rem,100%)] xl:items-start xl:gap-8">
-        <div className="min-w-0">
-          <label className="block">
-            <span className="sr-only">Buscar presentes</span>
-            <input
-              type="search"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome ou preço…"
-              className={presentesFieldClass}
-            />
-          </label>
+      <button
+        type="button"
+        onClick={() => setCarrinhoDrawerAberto(true)}
+        className="fixed right-3 top-3 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-invite-olive/35 bg-invite-cream text-invite-olive shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98] md:hidden"
+        aria-label={
+          selecionados.length > 0
+            ? `Abrir carrinho, ${selecionados.length} itens`
+            : "Abrir carrinho"
+        }
+      >
+        <IconeSacolaCompras className="h-5 w-5" />
+        {selecionados.length > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-invite-olive px-1 font-sans text-[0.65rem] font-bold leading-none text-white">
+            {selecionados.length}
+          </span>
+        )}
+      </button>
 
-          <div className="mt-4 max-h-[min(60vh,32rem)] overflow-y-auto overscroll-y-contain pr-0.5">
-          {catalogFiltrado.length === 0 ? (
-            <p className={`${presentesCard} px-6 py-10 text-center font-sans text-sm text-invite-olive/75`}>
-              Nenhum presente encontrado com essa busca.
-            </p>
-          ) : (
-          <div className="grid gap-5 sm:grid-cols-2">
-          {catalogFiltrado.map((p, i) => {
-            const selecionado = selecionados.some((x) => x.nome === p.nome);
-            return (
-              <article
-                key={`${p.nome}-${i}`}
-                className={`flex flex-col overflow-hidden border transition-shadow ${
-                  selecionado
-                    ? "border-invite-olive/50 bg-white/90 shadow-md ring-1 ring-invite-olive/20"
-                    : "border-invite-olive/25 bg-white/70 hover:border-invite-olive/40 hover:shadow-sm"
-                }`}
-              >
-                {p.imagem && (
-                  <a
-                    href={p.url || p.imagem}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative block aspect-[4/3] border-b border-invite-olive/15 bg-invite-cream/50"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.imagem} alt={p.nome} className="h-full w-full object-cover" />
-                    {selecionado && (
-                      <span className="font-invite-caps absolute right-2 top-2 bg-invite-olive px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-white shadow-sm">
-                        No carrinho
-                      </span>
-                    )}
-                  </a>
-                )}
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
-                  <h3 className="font-heading text-lg italic leading-snug text-invite-olive sm:text-xl">
-                    {p.nome}
-                  </h3>
-                  {p.preco && (
-                    <p className="font-invite-caps mt-2 text-[0.85rem] font-semibold uppercase tracking-[0.12em] text-invite-olive/90">
-                      R$ {p.preco.replace(".", ",")}
-                    </p>
-                  )}
-                  {p.url && (
-                    <a
-                      href={p.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-invite-caps mt-3 inline-block text-[0.68rem] font-medium uppercase tracking-[0.14em] text-invite-olive/75 underline-offset-4 hover:text-invite-olive hover:underline"
-                    >
-                      Ver na loja
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => togglePresente(p)}
-                    className={`mt-5 ${selecionado ? presentesBtnOutline : presentesBtnPrimary}`}
-                    aria-pressed={selecionado}
-                  >
-                    {selecionado ? "✓ No carrinho" : "Selecionar"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-          </div>
-          )}
-          </div>
+      <DrawerCarrinhoPresentes
+        open={carrinhoDrawerAberto}
+        onClose={() => setCarrinhoDrawerAberto(false)}
+        {...carrinhoProps}
+      />
+
+      <section className="flex min-h-0 w-full flex-col pt-2 md:pt-0" aria-label="Lista de presentes">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-sans text-xs text-invite-olive/70">
+            {catalogFiltrado.length} de {catalog.length}{" "}
+            {catalog.length === 1 ? "item" : "itens"}
+          </p>
+          <button
+            type="button"
+            onClick={() => setCarrinhoDrawerAberto(true)}
+            className="font-invite-caps hidden items-center gap-2.5 border border-invite-olive/35 bg-invite-cream px-4 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-invite-olive shadow-sm transition-colors hover:border-invite-olive/50 hover:bg-white md:inline-flex"
+            aria-label={
+              selecionados.length > 0
+                ? `Abrir carrinho, ${selecionados.length} itens`
+                : "Abrir carrinho"
+            }
+          >
+            <span className="relative flex h-9 w-9 items-center justify-center rounded-full border border-invite-olive/25 bg-white text-invite-olive">
+              <IconeSacolaCompras className="h-[1.05rem] w-[1.05rem]" />
+              {selecionados.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-invite-olive px-1 font-sans text-[0.58rem] font-bold leading-none text-white">
+                  {selecionados.length}
+                </span>
+              )}
+            </span>
+            Carrinho
+          </button>
         </div>
 
-        <CarrinhoPresentes
-          itens={selecionados}
-          totalSugerido={totalSugerido}
-          mostrarPagamento={mostrarPagamento}
-          onRemover={removerDoCarrinho}
-          onLimpar={limparCarrinho}
-          onContinuar={() => setMostrarPagamento((v) => !v)}
-          className="mt-8 xl:mt-0 xl:sticky xl:top-6"
-        />
-      </div>
-
-      {mostrarPagamento && selecionados.length > 0 && (
-        <section className={`${presentesCard} mt-6 px-6 py-8 sm:px-8 sm:py-10`}>
-          <PagamentoPresente
-            key={selecionados.map((p) => p.nome).join("|")}
-            token={token}
-            presentes={selecionados}
+        {mostrarAlertaCarrinho && (
+          <AlertaCarrinhoPresentes
+            variant="inline"
+            quantidade={selecionados.length}
+            total={totalSugerido}
+            onVerCarrinho={verCarrinho}
+            onDispensar={() => setAlertaCarrinhoOculto(true)}
           />
-        </section>
-      )}
+        )}
+
+        <label className="relative mb-3 block">
+          <span className="sr-only">Buscar por nome</span>
+          <IconeBusca className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-invite-olive/45" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome…"
+            className={`${presentesFieldClass} !py-3 pl-10`}
+          />
+        </label>
+
+        <div className="min-h-[12rem] max-h-[calc(100vh-14rem)] overflow-y-auto overscroll-y-contain pr-0.5 md:max-h-[calc(100vh-12rem)]">
+          {catalogFiltrado.length === 0 ? (
+            <p className={`${presentesCard} px-5 py-8 text-center font-sans text-sm text-invite-olive/75`}>
+              Nenhum presente encontrado com esse nome.
+            </p>
+          ) : (
+            <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-4">
+              {catalogFiltrado.map((p, i) => {
+                const selecionado = selecionados.some((x) => x.nome === p.nome);
+                return (
+                  <CardPresente
+                    key={`${p.nome}-${i}`}
+                    presente={p}
+                    selecionado={selecionado}
+                    onToggle={() => togglePresente(p)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <ModalPagamentoPresente
+        open={modalPagamentoAberto && selecionados.length > 0}
+        onClose={() => setModalPagamentoAberto(false)}
+      >
+        <PagamentoPresente
+          key={selecionados.map((p) => p.nome).join("|")}
+          token={token}
+          presentes={selecionados}
+        />
+      </ModalPagamentoPresente>
     </>
   );
 }
