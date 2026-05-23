@@ -8,6 +8,7 @@ import AddPresente from "./AddPresente";
 import SincronizarPagamentoMP from "./SincronizarPagamentoMP";
 import EditarConvidadoModal from "./EditarConvidadoModal";
 import { contarPessoasNoConvite, totalPessoasConvidadas } from "@/lib/contagemConvidados";
+import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 
 type DadosAdmin = {
   convidados: {
@@ -690,7 +691,7 @@ export default function Dashboard() {
                                 Copiar link
                               </button>
                               <a
-                                href={`https://wa.me/?text=${encodeURIComponent("Confirmação de presença - Lucas & Beatriz: " + c.link)}`}
+                                href={buildConviteWhatsAppUrl(c.link, c.nome)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 import { ORIGEM_CONVIDADO_SUGESTOES } from "@/lib/origemConvidado";
 
 type Props = { onAdicionado: () => void };
@@ -16,13 +17,13 @@ export default function AddConvidado({ onAdicionado }: Props) {
   const [origem, setOrigem] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [ultimoConvite, setUltimoConvite] = useState<{ link: string; nome: string } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nome.trim()) return;
     setErro("");
-    setSucesso(null);
+    setUltimoConvite(null);
     setLoading(true);
 
     try {
@@ -44,7 +45,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
         return;
       }
 
-      setSucesso(data.link);
+      setUltimoConvite({ link: data.link, nome: nome.trim() });
       setNome("");
       setAcompanhantes("");
       setContato("");
@@ -139,18 +140,18 @@ export default function AddConvidado({ onAdicionado }: Props) {
         </div>
 
         {erro && <p className="mt-4 text-sm text-red-600">{erro}</p>}
-        {sucesso && (
+        {ultimoConvite && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-3 py-2.5 text-sm">
             <span className="font-medium text-emerald-900">Link gerado.</span>
             <button
               type="button"
-              onClick={() => navigator.clipboard.writeText(sucesso)}
+              onClick={() => navigator.clipboard.writeText(ultimoConvite.link)}
               className="font-medium text-casamento-oliva-escuro underline-offset-2 hover:underline"
             >
               Copiar link
             </button>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent("Confirmação de presença - Lucas & Beatriz: " + sucesso)}`}
+              href={buildConviteWhatsAppUrl(ultimoConvite.link, ultimoConvite.nome)}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-casamento-oliva-escuro underline-offset-2 hover:underline"
