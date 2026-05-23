@@ -169,9 +169,11 @@ function BlocoPixInformativo({ titular, chave }: { titular: string; chave: strin
       <span className={`${inviteAtalhoCirculoBtn} pointer-events-none`}>
         <IconePix />
       </span>
-      <span className={`${inviteAtalhoRotulo} font-semibold text-invite-olive`}>Pix</span>
       <div className="mt-4 w-full border border-invite-olive/35 px-4 py-4 text-center sm:px-5 sm:py-5">
-        <p className="font-sans text-[0.9rem] font-medium normal-case leading-snug text-invite-olive sm:text-[0.94rem]">
+        <p className="mt-0 w-full text-center font-invite-caps text-[0.9rem] font-semibold uppercase tracking-[0.12em] text-invite-olive sm:text-[0.95rem] sm:tracking-[0.14em]">
+          Pix
+        </p>
+        <p className="font-sans mt-3 text-[0.9rem] font-medium normal-case leading-snug text-invite-olive sm:text-[0.94rem]">
           {titular}
         </p>
         <p className="font-sans mt-1.5 break-all text-[0.9rem] font-medium normal-case leading-snug text-invite-olive/90 sm:text-[0.94rem]">

@@ -16,6 +16,7 @@ type SearchParams = {
   mp?: string | string[];
   payment_id?: string | string[];
   collection_id?: string | string[];
+  external_reference?: string | string[];
   status?: string | string[];
 };
 
