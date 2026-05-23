@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrecoBRL } from "@/lib/presentes-checkout";
 import { presentesBtnPrimary, presentesFieldClass, presentesLabelClass } from "./presentesTheme";
@@ -17,9 +17,21 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
+  useEffect(() => {
+    if (totalSugerido != null && totalSugerido > 0) {
+      setValor(formatPrecoBRL(totalSugerido));
+    }
+  }, [totalSugerido]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
+
+    if (totalSugerido != null && !valor.trim()) {
+      setErro("Informe o valor que você pagou.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -29,7 +41,11 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
         body: JSON.stringify({
           token,
           presentes: presentesNomes,
-          valor: valor.trim() ? valor.replace(/\D/g, "") : undefined,
+          valor: valor.trim()
+            ? valor.replace(/\D/g, "")
+            : totalSugerido != null
+              ? String(Math.round(totalSugerido * 100))
+              : undefined,
         }),
       });
 
@@ -48,10 +64,8 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
     }
   }
 
-  const placeholder =
-    totalSugerido != null
-      ? `Sugerido: R$ ${formatPrecoBRL(totalSugerido)}`
-      : "Ex.: 150,00";
+  const valorConhecido = totalSugerido != null && totalSugerido > 0;
+  const placeholder = valorConhecido ? `R$ ${formatPrecoBRL(totalSugerido)}` : "Ex.: 150,00";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 border-t border-invite-olive/20 pt-8">
@@ -65,9 +79,11 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
       <div>
         <label htmlFor="valor-pix" className={presentesLabelClass}>
           Valor pago{" "}
-          <span className="font-sans font-normal normal-case tracking-normal text-invite-olive/55">
-            (opcional)
-          </span>
+          {!valorConhecido && (
+            <span className="font-sans font-normal normal-case tracking-normal text-invite-olive/55">
+              (opcional)
+            </span>
+          )}
         </label>
         <input
           id="valor-pix"
@@ -75,7 +91,8 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
           value={valor}
           onChange={(e) => setValor(e.target.value)}
           placeholder={placeholder}
-          className={presentesFieldClass}
+          readOnly={valorConhecido}
+          className={`${presentesFieldClass}${valorConhecido ? " bg-invite-cream/60" : ""}`}
         />
       </div>
 

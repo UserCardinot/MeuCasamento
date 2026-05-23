@@ -209,7 +209,10 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
     onContinuar: abrirPagamento,
   };
 
+  const isProducao = process.env.NODE_ENV === "production";
+
   const mostrarAlertaCarrinho =
+    !isProducao &&
     selecionados.length > 0 &&
     !alertaCarrinhoOculto &&
     !carrinhoDrawerAberto &&

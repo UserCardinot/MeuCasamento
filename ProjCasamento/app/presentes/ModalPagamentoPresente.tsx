@@ -40,7 +40,7 @@ export default function ModalPagamentoPresente({ open, onClose, children }: Prop
         onClick={onClose}
       />
       <div
-        className={`${presentesModalPanel} relative z-10 flex max-h-[min(92vh,40rem)] w-full max-w-lg flex-col sm:max-h-[min(88vh,44rem)] sm:rounded-sm`}
+        className={`${presentesModalPanel} relative z-10 flex max-h-[min(92vh,44rem)] w-full max-w-xl flex-col sm:max-h-[min(90vh,48rem)] sm:rounded-sm`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-invite-olive/25 bg-invite-cream px-5 py-4 sm:px-6">
           <h2
