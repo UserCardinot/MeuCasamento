@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { validateGuestToken } from "@/lib/auth";
 import { getPresencaStatus } from "@/lib/google";
+import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import BannerPresencaConvite from "./BannerPresencaConvite";
 
 export const dynamic = "force-dynamic";
@@ -190,14 +191,14 @@ type Props = {
 
 function ErroConvite({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
-    <main className="invite-wall-texture-bg flex min-h-screen flex-col items-center justify-center py-24">
+    <InvitePageShell className="flex min-h-screen flex-col items-center justify-center py-24">
       <div className={inviteColuna}>
         <div className="mx-auto max-w-lg border border-invite-olive/80 px-8 py-12 text-center">
           <p className="font-invite-caps text-invite-olive text-lg font-medium tracking-wide">{mensagem}</p>
           {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }
 
@@ -239,7 +240,7 @@ export default async function ConvitePage({ searchParams }: Props) {
 
   const { primeiro, segundo, monograma } = EVENTO.noivos;
   return (
-    <main className="invite-wall-texture-bg min-h-screen pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10">
+    <InvitePageShell className="pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10">
       <div className={`${inviteColuna} relative pb-6 sm:pb-8`}>
         {/* Moldura lateral/inferior (atrás do conteúdo). Sem border-top: o fundo do conteúdo cobria o traço no meio. */}
         <div
@@ -394,6 +395,6 @@ export default async function ConvitePage({ searchParams }: Props) {
           </section>
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }

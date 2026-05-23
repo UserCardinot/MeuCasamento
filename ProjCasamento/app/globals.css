@@ -8,48 +8,14 @@
 }
 
 /*
- * Papel amassado + grão da parede em camada fixa, para a textura não sumir atrás dos filhos.
+ * Telado markatto/linho — tile da referência (public/convite/texture-telado-markatto.png).
+ * Uma camada só: creme + foto suavizada (sem grade SVG, sem manchas, sem camada fixa).
  */
-.invite-wall-texture-bg {
-  position: relative;
-  isolation: isolate;
-  background-color: #f0ebe1;
-}
-
-.invite-wall-texture-bg::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+.invite-page-shell {
   background-color: #f0ebe1;
   background-image:
-    url("/convite/texture-papel-completo.svg"),
-    url("/convite/texture-parede.svg"),
-    radial-gradient(ellipse 42% 32% at 18% 28%, rgba(74, 80, 56, 0.07) 0%, transparent 72%),
-    radial-gradient(ellipse 38% 30% at 78% 62%, rgba(74, 80, 56, 0.06) 0%, transparent 68%),
-    radial-gradient(ellipse 48% 36% at 52% 48%, rgba(255, 253, 248, 0.14) 0%, transparent 62%),
-    radial-gradient(ellipse 120% 85% at 50% -12%, rgba(255, 253, 248, 0.18) 0%, transparent 55%);
-  background-size:
-    280px 280px,
-    384px 384px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
-  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
-}
-
-.invite-wall-texture-bg > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Só grão SVG — sem cor de fundo, senão apaga a foto da capa por cima */
-.invite-paper-texture-overlay {
-  background-image: url("/convite/texture-papel-completo.svg");
-  background-size: 280px 280px;
-  background-repeat: repeat;
-  opacity: 0.78;
+    linear-gradient(rgba(240, 235, 225, 0.82), rgba(240, 235, 225, 0.82)),
+    url("/convite/texture-telado-markatto.png");
+  background-size: 100% 100%, 440px 440px;
+  background-repeat: no-repeat, repeat;
 }

@@ -7,6 +7,7 @@ import { EVENTO } from "@/lib/evento";
 import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
 import ConfirmarRetornoMP from "./ConfirmarRetornoMP";
 import ListaPresentesConvidado from "./ListaPresentesConvidado";
+import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import { presentesColuna, presentesCard, presentesLinkVoltar } from "./presentesTheme";
 
 export const dynamic = "force-dynamic";
@@ -32,14 +33,14 @@ function pickParam(v: string | string[] | undefined): string | undefined {
 
 function ErroPresentes({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
-    <main className="invite-wall-texture-bg flex min-h-screen flex-col items-center justify-center py-16">
+    <InvitePageShell className="flex min-h-screen flex-col items-center justify-center py-16">
       <div className={presentesColuna}>
         <div className={`${presentesCard} px-8 py-12 text-center`}>
           <p className="font-invite-caps text-lg font-medium tracking-wide text-invite-olive">{mensagem}</p>
           {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }
 
@@ -106,7 +107,7 @@ export default async function PresentesPage({ searchParams }: Props) {
   const { primeiro, segundo } = EVENTO.noivos;
 
   return (
-    <main className="invite-wall-texture-bg min-h-screen py-12 sm:py-16 md:py-20 lg:py-24">
+    <InvitePageShell className="py-12 sm:py-16 md:py-20 lg:py-24">
       <div className={`${presentesColuna} w-full`}>
         <Link href={`/convite?token=${encodeURIComponent(token)}`} className={presentesLinkVoltar}>
           ← Voltar ao convite
@@ -158,6 +159,6 @@ export default async function PresentesPage({ searchParams }: Props) {
           />
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }

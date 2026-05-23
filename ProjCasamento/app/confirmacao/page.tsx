@@ -3,6 +3,7 @@ import { validateGuestToken } from "@/lib/auth";
 import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
 import { EVENTO } from "@/lib/evento";
 import { parseAcompanhantesLista } from "@/lib/acompanhantes";
+import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import FormConfirmacao from "./FormConfirmacao";
 
 const inviteColuna =
@@ -14,14 +15,14 @@ type Props = {
 
 function ErroConfirmacao({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
   return (
-    <main className="invite-wall-texture-bg flex min-h-screen flex-col items-center justify-center py-16">
+    <InvitePageShell className="flex min-h-screen flex-col items-center justify-center py-16">
       <div className={inviteColuna}>
         <div className="border border-invite-olive/50 bg-invite-cream/70 px-8 py-12 text-center">
           <p className="font-invite-caps text-lg font-medium tracking-wide text-invite-olive">{mensagem}</p>
           {detalhe && <p className="mt-4 font-sans text-sm text-invite-olive/80">{detalhe}</p>}
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }
 
@@ -62,7 +63,7 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
     acompanhantesSalvos.length > 0 ? acompanhantesSalvos : [...acompanhantesConvite];
 
   return (
-    <main className="invite-wall-texture-bg flex min-h-screen flex-col items-center justify-center py-12 sm:py-16 md:py-20 lg:py-24">
+    <InvitePageShell className="flex min-h-screen flex-col items-center justify-center py-12 sm:py-16 md:py-20 lg:py-24">
       <div className={`${inviteColuna} w-full`}>
         <Link
           href={`/convite?token=${encodeURIComponent(token)}`}
@@ -93,6 +94,6 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
           />
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }

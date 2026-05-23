@@ -1,8 +1,9 @@
+import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import { presentesColuna, presentesCard } from "./presentesTheme";
 
 export default function PresentesLoading() {
   return (
-    <main className="invite-wall-texture-bg min-h-screen py-12 sm:py-16">
+    <InvitePageShell className="py-12 sm:py-16">
       <div className={`${presentesColuna} animate-pulse`}>
         <div className="mb-10 h-4 w-32 bg-invite-olive/15" />
         <div className={`${presentesCard} space-y-8 px-6 py-10 sm:px-10`}>
@@ -15,6 +16,6 @@ export default function PresentesLoading() {
           </div>
         </div>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }
