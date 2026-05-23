@@ -1,16 +1,30 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import CardRecadoMural from "./CardRecadoMural";
+import ModalRecado from "./ModalRecado";
+import {
+  presentesBtnPrimary,
+  presentesCard,
+  presentesFieldClass,
+  presentesLabelClass,
+} from "../presentes/presentesTheme";
+
+type Recado = { nome: string; mensagem: string; data: string };
+
+const secaoTituloClass =
+  "font-invite-caps text-[0.68rem] font-medium uppercase tracking-[0.18em] text-invite-olive/75";
 
 export default function RecadosClient({ token }: { token: string }) {
-  const [recados, setRecados] = useState<{ nome: string; mensagem: string; data: string }[]>([]);
+  const [recados, setRecados] = useState<Recado[]>([]);
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState(false);
+  const [recadoAberto, setRecadoAberto] = useState<Recado | null>(null);
 
   const carregar = useCallback(() => {
-    if (!token) return;
     fetch(`/api/listar-recados?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((data) => {
@@ -33,6 +47,7 @@ export default function RecadosClient({ token }: { token: string }) {
       return;
     }
     setErro("");
+    setSucesso(false);
     setEnviando(true);
     try {
       const res = await fetch("/api/enviar-recado", {
@@ -46,6 +61,7 @@ export default function RecadosClient({ token }: { token: string }) {
         return;
       }
       setMensagem("");
+      setSucesso(true);
       carregar();
     } catch {
       setErro("Erro de conexão.");
@@ -54,62 +70,97 @@ export default function RecadosClient({ token }: { token: string }) {
     }
   }
 
-  if (!token) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 py-24 bg-[#FAFAFA]">
-        <p className="text-stone-600">Acesse através do link do seu convite.</p>
-      </main>
-    );
-  }
-
   return (
-    <main className="min-h-screen px-6 sm:px-12 lg:px-24 py-20 bg-[#FAFAFA]">
-      <div className="max-w-2xl mx-auto">
-        <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-2">Mural</p>
-        <h1 className="font-heading text-3xl sm:text-4xl font-light text-stone-900 mb-4">Recados</h1>
-        <p className="font-sans text-stone-600 mb-12">Deixe uma mensagem para Lucas e Beatriz!</p>
+    <div className="text-center">
+      <section className="border-b border-invite-olive/12 pb-8 md:pb-10" aria-labelledby="titulo-escrever-recado">
+        <h2 id="titulo-escrever-recado" className={`${secaoTituloClass} mb-5`}>
+          Escrever um recado
+        </h2>
 
-        <form onSubmit={handleSubmit} className="mb-16 bg-white rounded-2xl shadow-sm p-8">
-          <label className="block font-sans text-sm font-medium text-stone-700 mb-3">Sua mensagem</label>
-          <textarea
-            value={mensagem}
-            onChange={(e) => setMensagem(e.target.value)}
-            placeholder="Escreva sua mensagem..."
-            rows={4}
-            maxLength={500}
-            className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all resize-none"
-          />
-          <p className="font-sans text-stone-400 text-sm mt-2">{mensagem.length}/500</p>
-          {erro && <p className="font-sans text-red-600 text-sm mt-3">{erro}</p>}
+        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-lg space-y-5 text-left">
+          <div>
+            <label htmlFor="mensagem-recado" className={`${presentesLabelClass} text-center`}>
+              Sua mensagem
+            </label>
+            <textarea
+              id="mensagem-recado"
+              value={mensagem}
+              onChange={(e) => {
+                setMensagem(e.target.value);
+                setSucesso(false);
+              }}
+              placeholder="Escreva aqui com carinho…"
+              rows={5}
+              maxLength={500}
+              className={`${presentesFieldClass} resize-none`}
+            />
+            <p className="font-sans mt-2 text-right text-xs tabular-nums text-invite-olive/50">
+              {mensagem.length}/500
+            </p>
+          </div>
+
+          {erro && (
+            <p className="font-sans text-sm leading-relaxed text-red-800/90" role="alert">
+              {erro}
+            </p>
+          )}
+          {sucesso && (
+            <p
+              className="border border-invite-olive/30 bg-invite-olive/10 px-4 py-3 font-sans text-sm leading-relaxed text-invite-olive"
+              role="status"
+            >
+              Recado enviado com carinho. Obrigado!
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={enviando || !mensagem.trim()}
-            className="mt-6 w-full py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva disabled:opacity-50 transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
+            className={presentesBtnPrimary}
           >
-            {enviando ? "Enviando..." : "Enviar recado"}
+            {enviando ? "Enviando…" : "Enviar recado"}
           </button>
         </form>
+      </section>
 
-        <p className="font-sans text-stone-400 text-xs uppercase tracking-widest mb-6">Recados enviados</p>
+      <section className="pt-8 md:pt-10" aria-labelledby="titulo-mural-recados">
+        <div className="mb-6 text-center">
+          <h2 id="titulo-mural-recados" className={secaoTituloClass}>
+            Recados no mural
+          </h2>
+          {!loading && recados.length > 0 && (
+            <p className="font-sans mt-2 text-xs text-invite-olive/55">
+              {recados.length} {recados.length === 1 ? " mensagem" : " mensagens"}
+            </p>
+          )}
+        </div>
+
         {loading ? (
-          <p className="font-sans text-stone-500">Carregando...</p>
+          <p className="font-sans py-12 text-sm text-invite-olive/60">Carregando recados…</p>
         ) : recados.length === 0 ? (
-          <p className="font-sans text-stone-500 bg-white rounded-2xl shadow-sm p-12 text-center">Nenhum recado ainda. Seja o primeiro!</p>
+          <p
+            className={`${presentesCard} mx-auto max-w-lg border-dashed px-6 py-12 font-sans text-sm leading-relaxed text-invite-olive/75`}
+          >
+            Nenhum recado ainda. Seja o primeiro a escrever!
+          </p>
         ) : (
-          <div className="space-y-6">
-            {recados.map((r, i) => (
-              <div
-                key={i}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-stone-50"
-              >
-                <p className="font-sans font-medium text-stone-800">{r.nome}</p>
-                <p className="font-sans text-stone-600 mt-2 leading-relaxed">{r.mensagem}</p>
-                <p className="font-sans text-stone-400 text-xs mt-4">{r.data}</p>
-              </div>
-            ))}
+          <div className="border border-invite-olive/15 bg-gradient-to-b from-white/40 to-invite-olive/[0.04] p-3 sm:p-4 md:p-5">
+            <ul className="grid max-h-[min(58vh,36rem)] w-full grid-cols-1 gap-3 overflow-y-auto overscroll-y-contain p-0.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {[...recados].reverse().map((r, i) => (
+                <li key={`${r.nome}-${r.data}-${i}`} className="flex min-h-[11rem]">
+                  <CardRecadoMural
+                    nome={r.nome}
+                    data={r.data}
+                    onClick={() => setRecadoAberto(r)}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-      </div>
-    </main>
+      </section>
+
+      <ModalRecado recado={recadoAberto} onClose={() => setRecadoAberto(null)} />
+    </div>
   );
 }
