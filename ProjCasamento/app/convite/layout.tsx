@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
+import { getConviteOgImageAbsoluteUrl } from "@/lib/convite-og-urls";
 import { getConviteOpenGraphDescription, getConviteOpenGraphTitle } from "@/lib/convite-whatsapp";
+
+const ogImageUrl = getConviteOgImageAbsoluteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(getPublicSiteBaseUrl()),
@@ -14,10 +17,11 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/convite/opengraph-image",
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: getConviteOpenGraphTitle(),
+        type: "image/png",
       },
     ],
   },
@@ -25,6 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: getConviteOpenGraphTitle(),
     description: getConviteOpenGraphDescription(),
+    images: [ogImageUrl],
   },
 };
 
