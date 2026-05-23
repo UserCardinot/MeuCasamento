@@ -60,6 +60,28 @@ export function somaPrecosCatalogo(presentes: { preco: string }[]): number | nul
   return Math.round(total * 100) / 100;
 }
 
+/** Filtro de busca por nome ou preço (aceita "150", "150,00", "R$ 150"). */
+export function matchBuscaCatalogoPresente(
+  query: string,
+  item: { nome: string; preco: string }
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (item.nome.toLowerCase().includes(q)) return true;
+
+  const precoRaw = item.preco.trim();
+  if (!precoRaw) return false;
+
+  const precoNorm = precoRaw.toLowerCase().replace(",", ".");
+  const qPreco = q.replace(/^r\$\s*/, "").trim();
+  if (precoNorm.includes(qPreco)) return true;
+
+  const digitsQ = qPreco.replace(/[^\d.]/g, "");
+  if (!digitsQ) return false;
+  const digitsP = precoNorm.replace(/[^\d.]/g, "");
+  return digitsP.includes(digitsQ);
+}
+
 export function resolvePresentesCatalogItems(
   catalog: PresenteCatalogo[],
   nomes: string[]

@@ -10,6 +10,7 @@ import EditarConvidadoModal from "./EditarConvidadoModal";
 import EditarPresenteModal from "./EditarPresenteModal";
 import { contarPessoasNoConvite, totalPessoasConvidadas } from "@/lib/contagemConvidados";
 import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
+import { matchBuscaCatalogoPresente } from "@/lib/presentes-checkout";
 
 type DadosAdmin = {
   convidados: {
@@ -176,6 +177,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState<TabId>("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [buscaConvidados, setBuscaConvidados] = useState("");
+  const [buscaCatalogoPresentes, setBuscaCatalogoPresentes] = useState("");
   const [filtroOrigemConvidados, setFiltroOrigemConvidados] = useState("");
   const [excluindoToken, setExcluindoToken] = useState<string | null>(null);
   const [excluindoPresenteNome, setExcluindoPresenteNome] = useState<string | null>(null);
@@ -304,6 +306,11 @@ export default function Dashboard() {
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [dados]);
+
+  const catalogoPresentesFiltrado = useMemo(() => {
+    const lista = dados?.catalogoPresentes ?? [];
+    return lista.filter((p) => matchBuscaCatalogoPresente(buscaCatalogoPresentes, p));
+  }, [dados?.catalogoPresentes, buscaCatalogoPresentes]);
 
   if (loading && !dados) {
     return (
@@ -845,11 +852,27 @@ export default function Dashboard() {
               />
               <AddPresente onAdicionado={carregar} />
               {dados.catalogoPresentes && dados.catalogoPresentes.length > 0 ? (
-                <div className={`mt-6 ${TABLE_WRAP}`}>
-                  <div className="overflow-x-auto">
+                <>
+                  <label className="mt-6 block max-w-md">
+                    <span className="sr-only">Buscar no catálogo</span>
+                    <input
+                      type="search"
+                      placeholder="Buscar por nome ou preço…"
+                      value={buscaCatalogoPresentes}
+                      onChange={(e) => setBuscaCatalogoPresentes(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-casamento-sage focus:outline-none focus:ring-2 focus:ring-casamento-pastel/50"
+                    />
+                  </label>
+                  {catalogoPresentesFiltrado.length === 0 ? (
+                    <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-8 text-center text-sm text-zinc-500">
+                      Nenhum item encontrado com essa busca.
+                    </p>
+                  ) : (
+                <div className={`mt-4 ${TABLE_WRAP}`}>
+                  <div className="max-h-[min(65vh,34rem)] overflow-auto overscroll-y-contain">
                     <table className="w-full min-w-[720px] text-sm leading-relaxed">
                       <thead>
-                        <tr className={THEAD_ROW}>
+                        <tr className={`${THEAD_ROW} sticky top-0 z-10 shadow-[0_1px_0_0_rgb(228_228_231)]`}>
                           <th className="px-4 py-3">Nome</th>
                           <th className="px-4 py-3">Preço</th>
                           <th className="px-4 py-3">Ativo</th>
@@ -859,7 +882,7 @@ export default function Dashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
-                        {dados.catalogoPresentes.map((p) => {
+                        {catalogoPresentesFiltrado.map((p) => {
                           const inativo = !p.ativo.trim().toLowerCase().startsWith("s");
                           return (
                           <tr
@@ -944,6 +967,8 @@ export default function Dashboard() {
                     </table>
                   </div>
                 </div>
+                  )}
+                </>
               ) : (
                 <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-8 text-center text-sm text-zinc-500">
                   Nenhum item no catálogo ainda.

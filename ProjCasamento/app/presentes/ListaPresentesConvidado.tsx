@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import CarrinhoPresentes from "./CarrinhoPresentes";
 import PagamentoPresente from "./PagamentoPresente";
-import { somaPrecosCatalogo } from "@/lib/presentes-checkout";
-import { presentesBtnOutline, presentesBtnPrimary, presentesCard } from "./presentesTheme";
+import { matchBuscaCatalogoPresente, somaPrecosCatalogo } from "@/lib/presentes-checkout";
+import { presentesBtnOutline, presentesBtnPrimary, presentesCard, presentesFieldClass } from "./presentesTheme";
 
 type Presente = { nome: string; preco: string; url: string; imagem: string };
 
@@ -17,6 +17,12 @@ type Props = {
 export default function ListaPresentesConvidado({ token, catalog, presenteRegistrado }: Props) {
   const [selecionados, setSelecionados] = useState<Presente[]>([]);
   const [mostrarPagamento, setMostrarPagamento] = useState(false);
+  const [busca, setBusca] = useState("");
+
+  const catalogFiltrado = useMemo(
+    () => catalog.filter((p) => matchBuscaCatalogoPresente(busca, p)),
+    [catalog, busca]
+  );
 
   const totalSugerido = useMemo(() => somaPrecosCatalogo(selecionados), [selecionados]);
 
@@ -91,8 +97,26 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
       </p>
 
       <div className="xl:grid xl:grid-cols-[1fr_min(20rem,100%)] xl:items-start xl:gap-8">
-        <div className="grid gap-5 sm:grid-cols-2">
-          {catalog.map((p, i) => {
+        <div className="min-w-0">
+          <label className="block">
+            <span className="sr-only">Buscar presentes</span>
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou preço…"
+              className={presentesFieldClass}
+            />
+          </label>
+
+          <div className="mt-4 max-h-[min(60vh,32rem)] overflow-y-auto overscroll-y-contain pr-0.5">
+          {catalogFiltrado.length === 0 ? (
+            <p className={`${presentesCard} px-6 py-10 text-center font-sans text-sm text-invite-olive/75`}>
+              Nenhum presente encontrado com essa busca.
+            </p>
+          ) : (
+          <div className="grid gap-5 sm:grid-cols-2">
+          {catalogFiltrado.map((p, i) => {
             const selecionado = selecionados.some((x) => x.nome === p.nome);
             return (
               <article
@@ -150,6 +174,9 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
               </article>
             );
           })}
+          </div>
+          )}
+          </div>
         </div>
 
         <CarrinhoPresentes
