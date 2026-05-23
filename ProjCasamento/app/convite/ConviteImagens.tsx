@@ -13,7 +13,7 @@ const SRC_CAPA = process.env.NEXT_PUBLIC_CONVITE_CAPA?.trim() || "/convite/capa.
  */
 const LOGO_PNG = { w: 500, h: 500, top: 160, contentH: 180 } as const;
 const logoViewport =
-  "mx-auto shrink-0 overflow-hidden leading-[0] w-[var(--logo-d)] max-w-[min(100%,92vw)] h-[calc(var(--logo-d)*0.36)] [--logo-d:11.5rem] sm:[--logo-d:16.5rem] md:[--logo-d:19.5rem] lg:[--logo-d:min(23rem,72svh)]";
+  "mx-auto shrink-0 overflow-hidden leading-[0] w-[var(--logo-d)] max-w-[min(100%,92vw)] h-[calc(var(--logo-d)*0.36)] [--logo-d:9rem] sm:[--logo-d:12.75rem] md:[--logo-d:15.5rem] lg:[--logo-d:min(18rem,62svh)]";
 
 const logoImage =
   "mx-auto block h-[var(--logo-d)] w-[var(--logo-d)] max-w-[min(100%,92vw)] object-contain -mt-[calc(var(--logo-d)*0.32)]";
@@ -70,7 +70,7 @@ export function ConviteCapaTransicao({ alt, fallback }: { alt: string; fallback:
           src={SRC_CAPA}
           alt={alt}
           fill
-          className="object-cover object-[center_68%] opacity-55"
+          className="object-cover object-[center_68%] opacity-45"
           sizes="(max-width: 768px) 100vw, 794px"
           onError={() => setFailed(true)}
           priority

@@ -38,7 +38,7 @@ function NomesNoivosTitulo({
 }) {
   return (
     <h1
-      className={`font-nomes-noivos w-full text-center leading-[1] text-invite-olive text-balance text-[clamp(4.25rem,14vw,7.75rem)] ${className}`}
+      className={`font-nomes-noivos w-full text-center leading-[1] text-invite-olive text-balance text-[clamp(4rem,13vw,7.25rem)] ${className}`}
     >
       {primeiro} <span className="text-[0.55em] font-normal">&amp;</span> {segundo}
     </h1>
@@ -256,24 +256,26 @@ export default async function ConvitePage({ searchParams }: Props) {
             <div className="flex min-h-0 w-full flex-1 flex-col justify-center pb-0">
               <div className="flex w-full translate-y-5 flex-col items-center sm:translate-y-6 md:translate-y-7">
                 <header className="flex w-full shrink-0 flex-col items-center gap-3 sm:gap-4 md:gap-5">
-                  <ConviteLogoImagem
-                    alt={`Casamento ${primeiro} & ${segundo}`}
-                    fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
-                  />
+                  <div className="-translate-y-7 sm:-translate-y-8 md:-translate-y-10">
+                    <ConviteLogoImagem
+                      alt={`Casamento ${primeiro} & ${segundo}`}
+                      fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+                    />
+                  </div>
                   <NomesNoivosTitulo primeiro={primeiro} segundo={segundo} className="w-full px-1" />
                 </header>
-                <div className="mx-auto flex w-full max-w-full shrink-0 translate-y-6 flex-col items-center px-0 pt-4 sm:max-w-xl sm:translate-y-8 sm:pt-5 md:max-w-3xl md:translate-y-10 md:pt-6">
+                <div className="mx-auto flex w-full max-w-full shrink-0 translate-y-11 flex-col items-center px-0 pt-6 sm:max-w-xl sm:translate-y-14 sm:pt-7 md:max-w-3xl md:translate-y-16 md:pt-8">
                   <blockquote className="mx-auto w-full max-w-[30rem] shrink-0 px-1 text-center sm:max-w-xl md:max-w-xl sm:px-3">
-                    <p className="font-heading text-[1.08rem] italic leading-snug text-invite-olive sm:text-[1.38rem] md:text-[1.52rem] sm:leading-relaxed">
+                    <p className="font-heading text-[0.98rem] italic leading-snug text-invite-olive sm:text-[1.22rem] md:text-[1.35rem] sm:leading-relaxed">
                       {"\u201c"}
                       {COLOSSENSES_3_14_NVI}
                       {"\u201d"}
                     </p>
-                    <footer className="font-invite-caps mt-4 text-[0.88rem] font-medium uppercase tracking-[0.18em] text-invite-olive sm:mt-5 sm:text-[1.12rem] sm:tracking-[0.22em] md:mt-6 md:text-[1.28rem] md:tracking-[0.24em]">
+                    <footer className="font-invite-caps mt-4 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-invite-olive sm:mt-5 sm:text-[0.78rem] sm:tracking-[0.18em] md:mt-6 md:text-[0.85rem] md:tracking-[0.2em]">
                       Colossenses 3:14
                     </footer>
                   </blockquote>
-                  <div className="mt-4 flex shrink-0 flex-col items-center text-invite-olive/40 sm:mt-5" aria-hidden>
+                  <div className="mt-2 flex shrink-0 flex-col items-center text-invite-olive/40 sm:mt-3" aria-hidden>
                     <svg width="20" height="28" viewBox="0 0 24 40" fill="none" className="opacity-70">
                       <path
                         d="M12 6v26M12 26l6-7M12 26l-6-7"
@@ -310,22 +312,22 @@ export default async function ConvitePage({ searchParams }: Props) {
                   aria-hidden
                 />
               </div>
-              <p className="font-invite-caps text-center text-[1.28rem] font-bold uppercase tracking-[0.16em] text-invite-olive sm:text-[1.42rem] sm:tracking-[0.18em] md:text-[1.55rem]">
-                Com grande prazer
+              <p className="font-invite-caps mx-auto mt-2 max-w-[18rem] text-center text-[0.88rem] font-bold uppercase leading-relaxed tracking-[0.1em] text-balance text-invite-olive sm:mt-3 sm:max-w-[22rem] sm:text-[0.96rem] sm:tracking-[0.11em] md:max-w-[24rem] md:text-[1.02rem] md:tracking-[0.12em]">
+                Com as benções de Deus
               </p>
 
-              <p className="font-invite-caps mx-auto mt-8 max-w-[22rem] text-center text-[1.05rem] font-medium uppercase leading-relaxed tracking-[0.14em] text-invite-olive sm:max-w-[26rem] sm:text-[1.18rem] sm:tracking-[0.16em] md:max-w-[28rem] md:text-[1.28rem]">
-                Convidam você para celebrar o nosso casamento
+              <p className="font-invite-caps mx-auto mt-8 max-w-[22rem] text-center text-[0.94rem] font-medium uppercase leading-relaxed tracking-[0.13em] text-invite-olive sm:max-w-[26rem] sm:text-[1.05rem] sm:tracking-[0.15em] md:max-w-[28rem] md:text-[1.14rem]">
+                Convidamos você para celebrar o nosso casamento
               </p>
 
-              <p className="font-invite-caps mt-8 text-center text-[1rem] font-medium uppercase leading-relaxed tracking-[0.12em] text-invite-olive sm:text-[1.12rem] sm:tracking-[0.14em] md:text-[1.2rem]">
+              <p className="font-invite-caps mt-8 text-center text-[0.9rem] font-medium uppercase leading-relaxed tracking-[0.11em] text-invite-olive sm:text-[1rem] sm:tracking-[0.13em] md:text-[1.08rem]">
                 {getDataHoraConviteUppercase()}
               </p>
 
-              <p className="font-invite-caps mt-10 text-center text-[1.28rem] font-bold uppercase tracking-[0.16em] text-invite-olive sm:text-[1.42rem] sm:tracking-[0.18em] md:text-[1.55rem]">
+              <p className="font-invite-caps mt-10 text-center text-[1.12rem] font-bold uppercase tracking-[0.15em] text-invite-olive sm:text-[1.24rem] sm:tracking-[0.17em] md:text-[1.36rem]">
                 {EVENTO.local.nome}
               </p>
-              <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.92rem] font-medium uppercase leading-relaxed tracking-[0.1em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[1.02rem] md:max-w-[26rem] md:text-[1.08rem]">
+              <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.84rem] font-medium uppercase leading-relaxed tracking-[0.09em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[0.92rem] md:max-w-[26rem] md:text-[0.98rem]">
                 {EVENTO.local.endereco}
               </p>
 
