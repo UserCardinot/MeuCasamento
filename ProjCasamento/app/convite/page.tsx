@@ -306,7 +306,7 @@ export default async function ConvitePage({ searchParams }: Props) {
                 <ContagemRegressiva variant="invite" compact />
               </div>
               <p className="font-invite-caps mx-auto mt-7 max-w-[18rem] text-center text-[0.88rem] font-bold uppercase leading-relaxed tracking-[0.1em] text-balance text-invite-olive sm:mt-9 sm:max-w-[22rem] sm:text-[0.96rem] sm:tracking-[0.11em] md:max-w-[24rem] md:text-[1.02rem] md:tracking-[0.12em]">
-                Com as benções de Deus
+                Com as bençãos de Deus
               </p>
 
               <p className="font-invite-caps mx-auto mt-8 max-w-[22rem] text-center text-[0.94rem] font-medium uppercase leading-relaxed tracking-[0.13em] text-invite-olive sm:max-w-[26rem] sm:text-[1.05rem] sm:tracking-[0.15em] md:max-w-[28rem] md:text-[1.14rem]">
