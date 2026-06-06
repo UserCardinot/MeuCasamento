@@ -16,14 +16,27 @@ function primeiroNome(nomeCompleto: string): string {
   return n || nomeCompleto.trim();
 }
 
+const PRAZO_CONFIRMACAO_PRESENCA = "02 de agosto de 2026";
+
 /**
- * Texto curto no WhatsApp — o convite aparece na miniatura do link (Open Graph).
- * Mantenha o link sozinho na última linha para o preview carregar.
+ * Mensagem do convite no WhatsApp — o link em linha própria ajuda o preview (Open Graph).
  */
 export function buildConviteWhatsAppMessage(link: string, nomeConvidado?: string): string {
-  const nome = nomeConvidado?.trim() ? primeiroNome(nomeConvidado) : null;
-  if (nome) return `Olá, ${nome}!\n${link}`;
-  return link;
+  const saudacao = nomeConvidado?.trim()
+    ? `Olá, ${primeiroNome(nomeConvidado)}!`
+    : "Olá!";
+
+  return `${saudacao}
+
+É com muita alegria que convidamos você para celebrar o nosso casamento!
+
+Acesse o nosso convite digital no link abaixo para ver os detalhes da cerimônia, festa, lista de presentes e confirmar sua presença:
+
+${link}
+
+Confirme sua presença até o dia ${PRAZO_CONFIRMACAO_PRESENCA}.
+
+Esperamos você lá! 💚`;
 }
 
 export function buildConviteWhatsAppUrl(link: string, nomeConvidado?: string): string {
