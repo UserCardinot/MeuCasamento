@@ -8,7 +8,12 @@ import AddPresente from "./AddPresente";
 import SincronizarPagamentoMP from "./SincronizarPagamentoMP";
 import EditarConvidadoModal from "./EditarConvidadoModal";
 import EditarPresenteModal from "./EditarPresenteModal";
-import { contarPessoasNoConvite, totalPessoasConvidadas } from "@/lib/contagemConvidados";
+import PendenciasPresencaModal from "./PendenciasPresencaModal";
+import {
+  contarPessoasNoConvite,
+  totalPessoasConfirmadas,
+  totalPessoasConvidadas,
+} from "@/lib/contagemConvidados";
 import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 import { matchBuscaCatalogoPresente } from "@/lib/presentes-checkout";
 
@@ -22,7 +27,7 @@ type DadosAdmin = {
     origem: string;
     link: string;
   }[];
-  presencas: { token: string; nome?: string; confirmado: string; nomesAcompanhantes?: string; data: string }[];
+  presencas: { token: string; nome?: string; confirmado: string; nomesAcompanhantes?: string; data: string; origem?: string }[];
   presentes: { token: string; nome?: string; presente: string; valor: string; data: string }[];
   uploads: { tipo: string; nome: string; arquivo: string; data: string }[];
   recados?: { token: string; nome: string; mensagem: string; data: string }[];
@@ -197,6 +202,9 @@ export default function Dashboard() {
     ativo: string;
   } | null>(null);
   const [filtroPresenca, setFiltroPresenca] = useState<"todos" | "sim" | "nao">("todos");
+  const [buscaPresencas, setBuscaPresencas] = useState("");
+  const [filtroOrigemPresencas, setFiltroOrigemPresencas] = useState("");
+  const [modalPendenciasAberto, setModalPendenciasAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -307,6 +315,31 @@ export default function Dashboard() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [dados]);
 
+  const tokenParaOrigem = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of dados?.convidados ?? []) {
+      map.set(c.token.toLowerCase(), (c.origem || "").trim());
+    }
+    return map;
+  }, [dados?.convidados]);
+
+  const pendenciasPresencaResumo = useMemo(() => {
+    const convidadosLista = dados?.convidados ?? [];
+    const presencasLista = dados?.presencas ?? [];
+    const presencaPorToken = new Map(presencasLista.map((p) => [String(p.token ?? "").toLowerCase(), p]));
+    const semResposta = convidadosLista.filter((c) => !presencaPorToken.has(c.token.toLowerCase())).length;
+    const naoIrao = convidadosLista.filter((c) => {
+      const p = presencaPorToken.get(c.token.toLowerCase());
+      if (!p) return false;
+      const conf = String(p.confirmado)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      return conf.includes("nao") && !conf.includes("sim");
+    }).length;
+    return { semResposta, naoIrao, total: semResposta + naoIrao };
+  }, [dados?.convidados, dados?.presencas]);
+
   const catalogoPresentesFiltrado = useMemo(() => {
     const lista = dados?.catalogoPresentes ?? [];
     return lista.filter((p) => matchBuscaCatalogoPresente(buscaCatalogoPresentes, p));
@@ -373,11 +406,22 @@ export default function Dashboard() {
   const pessoasNoFiltro = totalPessoasConvidadas(convidadosFiltrados);
 
   const presencasFiltradas = presencas.filter((p) => {
-    if (filtroPresenca === "todos") return true;
-    const conf = String(p.confirmado).toLowerCase();
-    if (filtroPresenca === "sim") return conf.includes("sim");
-    return conf.includes("não") || conf.includes("nao");
+    if (filtroPresenca !== "todos") {
+      const conf = String(p.confirmado).toLowerCase();
+      if (filtroPresenca === "sim" && !conf.includes("sim")) return false;
+      if (filtroPresenca === "nao" && !(conf.includes("não") || conf.includes("nao"))) return false;
+    }
+    const origem = tokenParaOrigem.get(String(p.token ?? "").toLowerCase()) ?? "";
+    const matchOrigem = !filtroOrigemPresencas || origem === filtroOrigemPresencas;
+    const q = buscaPresencas.trim().toLowerCase();
+    const matchBusca =
+      !q ||
+      (p.nome ?? "").toLowerCase().includes(q) ||
+      (p.nomesAcompanhantes ?? "").toLowerCase().includes(q) ||
+      origem.toLowerCase().includes(q);
+    return matchOrigem && matchBusca;
   });
+  const totalPessoasConfirmadasPresenca = totalPessoasConfirmadas(presencas);
 
   function exportarCSV(tipo: "convidados" | "presencas") {
     const BOM = "\uFEFF";
@@ -390,11 +434,12 @@ export default function Dashboard() {
           .join("\n");
     } else {
       csv =
-        "Nome;Confirmado;Acompanhantes;Data\n" +
+        "Nome;Grupo;Confirmado;Acompanhantes;Data\n" +
         presencasFiltradas
-          .map((p) =>
-            `${p.nome ?? p.token};${p.confirmado};${(p.nomesAcompanhantes ?? "").replace(/;/g, ",")};${p.data}`
-          )
+          .map((p) => {
+            const origem = (tokenParaOrigem.get(String(p.token ?? "").toLowerCase()) ?? "").replace(/;/g, ",");
+            return `${p.nome ?? p.token};${origem};${p.confirmado};${(p.nomesAcompanhantes ?? "").replace(/;/g, ",")};${p.data}`;
+          })
           .join("\n");
     }
     const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8" });
@@ -785,12 +830,64 @@ export default function Dashboard() {
 
         {tab === "presencas" && (
           <div className="space-y-6">
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm ring-1 ring-zinc-950/[0.04] sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Resumo</p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    <span className="font-heading text-2xl font-semibold tabular-nums text-casamento-oliva-escuro">
+                      {totalPessoasConfirmadasPresenca}
+                    </span>
+                    <span className="text-zinc-500"> pessoas confirmadas</span>
+                  </p>
+                  <p className="mt-2 max-w-2xl text-xs leading-relaxed text-zinc-500">
+                    Titular + acompanhantes (nomes separados por vírgula ou ponto e vírgula).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalPendenciasAberto(true)}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-950 shadow-sm transition hover:bg-amber-100"
+                >
+                  Pendências
+                  {pendenciasPresencaResumo.total > 0 ? (
+                    <span className="inline-flex min-w-[1.5rem] justify-center rounded-full bg-amber-200/80 px-1.5 py-0.5 text-xs font-semibold tabular-nums">
+                      {pendenciasPresencaResumo.total}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+            </div>
             <PageSection
               eyebrow="Confirmações"
               title="Presenças"
-              description="Filtre por status e exporte os dados para planilha quando precisar."
+              description="Filtre por status, grupo ou nome e exporte os dados para planilha quando precisar."
               actions={
                 <>
+                  <label className="sr-only" htmlFor="filtro-origem-presencas">
+                    Grupo ou origem
+                  </label>
+                  <select
+                    id="filtro-origem-presencas"
+                    value={filtroOrigemPresencas}
+                    onChange={(e) => setFiltroOrigemPresencas(e.target.value)}
+                    className="min-w-[10rem] max-w-[min(100%,16rem)] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm focus:border-casamento-sage focus:outline-none focus:ring-2 focus:ring-casamento-pastel/50"
+                    title="Filtrar por grupo ou origem"
+                  >
+                    <option value="">Todos os grupos</option>
+                    {origensUnicas.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="search"
+                    placeholder="Buscar por nome ou acompanhante…"
+                    value={buscaPresencas}
+                    onChange={(e) => setBuscaPresencas(e.target.value)}
+                    className="min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-casamento-sage focus:outline-none focus:ring-2 focus:ring-casamento-pastel/50"
+                  />
                   <select
                     value={filtroPresenca}
                     onChange={(e) => setFiltroPresenca(e.target.value as "todos" | "sim" | "nao")}
@@ -812,26 +909,39 @@ export default function Dashboard() {
             />
             <div className={TABLE_WRAP}>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm leading-relaxed">
+                <table className="w-full min-w-[720px] text-sm leading-relaxed">
                   <thead>
                     <tr className={THEAD_ROW}>
                       <th className="px-4 py-3">Nome</th>
+                      <th className="px-4 py-3">Grupo / origem</th>
                       <th className="px-4 py-3">Confirmado</th>
                       <th className="px-4 py-3">Acompanhantes</th>
                       <th className="px-4 py-3">Data</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {presencasFiltradas.map((p, i) => (
+                    {presencasFiltradas.map((p, i) => {
+                      const origem = tokenParaOrigem.get(String(p.token ?? "").toLowerCase()) ?? "";
+                      return (
                       <tr key={i} className="transition hover:bg-zinc-50/80">
                         <td className="px-4 py-3.5 font-medium text-zinc-900">{p.nome ?? p.token}</td>
+                        <td className="max-w-[14rem] px-4 py-3.5 text-zinc-600">
+                          {origem ? (
+                            <span className="inline-flex rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800">
+                              {origem}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="px-4 py-3.5 text-zinc-700">{p.confirmado}</td>
                         <td className="max-w-[220px] truncate px-4 py-3.5 text-zinc-600" title={p.nomesAcompanhantes}>
                           {p.nomesAcompanhantes || "—"}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5 text-zinc-500">{p.data}</td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1155,6 +1265,12 @@ export default function Dashboard() {
       </div>
       <EditarConvidadoModal convidado={editandoConvidado} onClose={fecharEdicaoConvidado} onSalvo={carregar} />
       <EditarPresenteModal presente={editandoPresente} onClose={fecharEdicaoPresente} onSalvo={carregar} />
+      <PendenciasPresencaModal
+        open={modalPendenciasAberto}
+        onClose={() => setModalPendenciasAberto(false)}
+        convidados={convidados}
+        presencas={presencas}
+      />
     </div>
   );
 }
