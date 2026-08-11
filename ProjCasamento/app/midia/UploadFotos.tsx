@@ -7,6 +7,8 @@ import {
   presentesFieldClass,
   presentesLabelClass,
 } from "@/app/presentes/presentesTheme";
+import { compressImageForUpload } from "@/lib/compress-image";
+import { readCaptureHint } from "@/lib/capture-hint";
 
 type Props = { eventToken: string };
 
@@ -21,8 +23,9 @@ type QueueItem = {
   erro?: string;
 };
 
-const MAX_FOTO_MB = 10;
+const MAX_FOTO_MB = 15;
 const MAX_VIDEO_MB = 50;
+const MAX_VIDEO_UPLOAD_MB = 3.8;
 const MAX_ITENS = 20;
 
 function isVideo(file: File) {
@@ -43,6 +46,9 @@ function validateFile(file: File): string | null {
   if (isVideo(file)) {
     if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
       return `Vídeo muito grande (máx. ${MAX_VIDEO_MB}MB).`;
+    }
+    if (file.size > MAX_VIDEO_UPLOAD_MB * 1024 * 1024) {
+      return `Vídeo grande demais para o celular (máx. ~${MAX_VIDEO_UPLOAD_MB}MB / ~15–20s). Grave mais curto ou envie no computador.`;
     }
     return null;
   }
@@ -69,45 +75,48 @@ export default function UploadFotos({ eventToken }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup só no unmount
   }, []);
 
-  const addFiles = useCallback((list: FileList | File[] | null) => {
-    if (!list) return;
-    setErroGeral("");
-    setEnviadosOk(0);
+  const addFiles = useCallback(
+    (list: FileList | File[] | null) => {
+      if (!list) return;
+      setErroGeral("");
+      setEnviadosOk(0);
 
-    const incoming = Array.from(list);
-    setItens((prev) => {
-      const room = MAX_ITENS - prev.length;
-      if (room <= 0) {
-        setErroGeral(`Máximo de ${MAX_ITENS} arquivos na lista.`);
-        return prev;
-      }
-
-      const next: QueueItem[] = [...prev];
-      const erros: string[] = [];
-
-      for (const file of incoming.slice(0, room)) {
-        const err = validateFile(file);
-        if (err) {
-          erros.push(`${file.name}: ${err}`);
-          continue;
+      const incoming = Array.from(list);
+      setItens((prev) => {
+        const room = MAX_ITENS - prev.length;
+        if (room <= 0) {
+          setErroGeral(`Máximo de ${MAX_ITENS} arquivos na lista.`);
+          return prev;
         }
-        seq.current += 1;
-        next.push({
-          id: `${baseId}-${seq.current}`,
-          file,
-          kind: isVideo(file) ? "video" : "foto",
-          previewUrl: URL.createObjectURL(file),
-          status: "pending",
-        });
-      }
 
-      if (incoming.length > room) {
-        erros.push(`Só cabem mais ${room} na lista (máx. ${MAX_ITENS}).`);
-      }
-      if (erros.length) setErroGeral(erros.slice(0, 3).join(" "));
-      return next;
-    });
-  }, [baseId]);
+        const next: QueueItem[] = [...prev];
+        const erros: string[] = [];
+
+        for (const file of incoming.slice(0, room)) {
+          const err = validateFile(file);
+          if (err) {
+            erros.push(`${file.name}: ${err}`);
+            continue;
+          }
+          seq.current += 1;
+          next.push({
+            id: `${baseId}-${seq.current}`,
+            file,
+            kind: isVideo(file) ? "video" : "foto",
+            previewUrl: URL.createObjectURL(file),
+            status: "pending",
+          });
+        }
+
+        if (incoming.length > room) {
+          erros.push(`Só cabem mais ${room} na lista (máx. ${MAX_ITENS}).`);
+        }
+        if (erros.length) setErroGeral(erros.slice(0, 3).join(" "));
+        return next;
+      });
+    },
+    [baseId]
+  );
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     addFiles(e.target.files);
@@ -148,17 +157,55 @@ export default function UploadFotos({ eventToken }: Props) {
       );
 
       try {
+        let fileToSend = item.file;
+        let captureAt: string | null = null;
+
+        if (item.kind === "foto") {
+          captureAt = await readCaptureHint(item.file);
+          try {
+            fileToSend = await compressImageForUpload(item.file);
+          } catch {
+            fileToSend = item.file;
+          }
+          if (fileToSend.size > 4.2 * 1024 * 1024) {
+            setItens((prev) =>
+              prev.map((i) =>
+                i.id === item.id
+                  ? {
+                      ...i,
+                      status: "error",
+                      erro: "Foto ainda grande demais. Tente outra ou use Wi‑Fi no computador.",
+                    }
+                  : i
+              )
+            );
+            continue;
+          }
+        }
+
         const formData = new FormData();
-        formData.append("file", item.file);
+        formData.append("file", fileToSend);
         formData.append("tipo", item.kind);
         formData.append("eventToken", eventToken);
         if (nome.trim()) formData.append("nome", nome.trim());
+        if (captureAt) formData.append("captureAt", captureAt);
 
         const res = await fetch("/api/enviar-midia", {
           method: "POST",
           body: formData,
         });
-        const data = await res.json();
+
+        let data: { erro?: string } = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {
+            erro:
+              res.status === 413
+                ? "Arquivo grande demais para o servidor. Use foto menor ou vídeo mais curto."
+                : "Falha no envio. Tente de novo.",
+          };
+        }
 
         if (!res.ok) {
           setItens((prev) =>
@@ -180,7 +227,11 @@ export default function UploadFotos({ eventToken }: Props) {
         setItens((prev) =>
           prev.map((i) =>
             i.id === item.id
-              ? { ...i, status: "error", erro: "Erro de conexão" }
+              ? {
+                  ...i,
+                  status: "error",
+                  erro: "Sem conexão ou arquivo grande demais. Tente no Wi‑Fi.",
+                }
               : i
           )
         );
@@ -189,7 +240,6 @@ export default function UploadFotos({ eventToken }: Props) {
 
     setLoading(false);
     if (okCount > 0) {
-      // remove enviados após breve feedback
       setTimeout(() => limparConcluidos(), 1200);
     }
   }
@@ -218,34 +268,20 @@ export default function UploadFotos({ eventToken }: Props) {
       <div>
         <p className={presentesLabelClass}>Adicionar à lista</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button
-            type="button"
-            className={btnClass}
-            onClick={() => cameraFotoRef.current?.click()}
-          >
+          <button type="button" className={btnClass} onClick={() => cameraFotoRef.current?.click()}>
             Tirar foto
           </button>
-          <button
-            type="button"
-            className={btnClass}
-            onClick={() => cameraVideoRef.current?.click()}
-          >
+          <button type="button" className={btnClass} onClick={() => cameraVideoRef.current?.click()}>
             Gravar vídeo
           </button>
-          <button
-            type="button"
-            className={btnClass}
-            onClick={() => galeriaRef.current?.click()}
-          >
+          <button type="button" className={btnClass} onClick={() => galeriaRef.current?.click()}>
             Da galeria
           </button>
         </div>
         <p className="mt-2 font-sans text-xs text-invite-olive/55">
-          No celular, “Tirar foto” / “Grav. vídeo” abrem a câmera. Depois continue adicionando — a
-          lista acumula até você enviar.
+          No celular, as fotos são compactadas antes de enviar. Vídeos: prefira até ~15–20s.
         </p>
 
-        {/* Câmera: foto */}
         <input
           ref={cameraFotoRef}
           type="file"
@@ -254,7 +290,6 @@ export default function UploadFotos({ eventToken }: Props) {
           className="sr-only"
           onChange={onInputChange}
         />
-        {/* Câmera: vídeo */}
         <input
           ref={cameraVideoRef}
           type="file"
@@ -263,7 +298,6 @@ export default function UploadFotos({ eventToken }: Props) {
           className="sr-only"
           onChange={onInputChange}
         />
-        {/* Galeria do aparelho (vários) */}
         <input
           ref={galeriaRef}
           type="file"
@@ -277,7 +311,7 @@ export default function UploadFotos({ eventToken }: Props) {
       {itens.length > 0 && (
         <div>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className={presentesLabelClass + " !mb-0"}>
+            <p className={`${presentesLabelClass} !mb-0`}>
               Lista ({itens.length}/{MAX_ITENS})
             </p>
             {itens.some((i) => i.status === "done") && (
@@ -307,11 +341,7 @@ export default function UploadFotos({ eventToken }: Props) {
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.previewUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
                   )}
                   <span className="absolute bottom-0 left-0 bg-invite-olive/90 px-1 py-0.5 font-invite-caps text-[0.55rem] uppercase tracking-wider text-white">
                     {item.kind === "video" ? "Vídeo" : "Foto"}
@@ -359,11 +389,7 @@ export default function UploadFotos({ eventToken }: Props) {
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={loading || pendentes === 0}
-        className={presentesBtnPrimary}
-      >
+      <button type="submit" disabled={loading || pendentes === 0} className={presentesBtnPrimary}>
         {loading
           ? "Enviando…"
           : pendentes > 1
