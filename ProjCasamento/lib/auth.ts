@@ -38,26 +38,27 @@ export function pickEventTokenParam(
     return undefined;
   };
 
-  return (
-    read("eventToken") ||
-    read("eventtoken") ||
-    read("EventToken") ||
-    (() => {
-      if (searchParams instanceof URLSearchParams) {
-        for (const [k, v] of searchParams.entries()) {
-          if (k.toLowerCase() === "eventtoken" && v?.trim()) return v.trim();
-        }
-        return undefined;
-      }
-      for (const [k, v] of Object.entries(searchParams)) {
-        if (k.toLowerCase() === "eventtoken") {
-          if (typeof v === "string" && v.trim()) return v.trim();
-          if (Array.isArray(v) && v[0]) return String(v[0]).trim();
-        }
-      }
-      return undefined;
-    })()
-  );
+  const direct = read("eventToken") || read("eventtoken") || read("EventToken");
+  if (direct) return direct;
+
+  if (searchParams instanceof URLSearchParams) {
+    const pairs = Array.from(searchParams.entries());
+    for (let i = 0; i < pairs.length; i++) {
+      const [k, v] = pairs[i];
+      if (k.toLowerCase() === "eventtoken" && v.trim()) return v.trim();
+    }
+    return undefined;
+  }
+
+  const keys = Object.keys(searchParams);
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    if (k.toLowerCase() !== "eventtoken") continue;
+    const v = searchParams[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (Array.isArray(v) && v[0]) return String(v[0]).trim();
+  }
+  return undefined;
 }
 
 export function validateAdminPassword(password: string): boolean {
