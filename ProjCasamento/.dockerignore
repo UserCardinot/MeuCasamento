@@ -1,0 +1,13 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+.next
+node_modules
+tmp
+.env
+.env.*
+!.env.production.example
+*.md
+arq
+scripts
