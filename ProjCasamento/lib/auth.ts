@@ -23,6 +23,43 @@ export function validateEventToken(token: string): boolean {
   return token === expected;
 }
 
+/** Aceita eventToken / eventtoken / EventToken na query string. */
+export function pickEventTokenParam(
+  searchParams: Record<string, string | string[] | undefined> | URLSearchParams
+): string | undefined {
+  const read = (key: string): string | undefined => {
+    if (searchParams instanceof URLSearchParams) {
+      const v = searchParams.get(key);
+      return v?.trim() || undefined;
+    }
+    const raw = searchParams[key];
+    if (typeof raw === "string") return raw.trim() || undefined;
+    if (Array.isArray(raw)) return raw[0]?.toString().trim() || undefined;
+    return undefined;
+  };
+
+  return (
+    read("eventToken") ||
+    read("eventtoken") ||
+    read("EventToken") ||
+    (() => {
+      if (searchParams instanceof URLSearchParams) {
+        for (const [k, v] of searchParams.entries()) {
+          if (k.toLowerCase() === "eventtoken" && v?.trim()) return v.trim();
+        }
+        return undefined;
+      }
+      for (const [k, v] of Object.entries(searchParams)) {
+        if (k.toLowerCase() === "eventtoken") {
+          if (typeof v === "string" && v.trim()) return v.trim();
+          if (Array.isArray(v) && v[0]) return String(v[0]).trim();
+        }
+      }
+      return undefined;
+    })()
+  );
+}
+
 export function validateAdminPassword(password: string): boolean {
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) return false;

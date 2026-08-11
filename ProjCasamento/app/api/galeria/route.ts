@@ -3,7 +3,15 @@ import { readFromSheet } from "@/lib/google";
 import { validateEventToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  const eventToken = request.nextUrl.searchParams.get("eventToken");
+  const eventToken =
+    request.nextUrl.searchParams.get("eventToken") ||
+    request.nextUrl.searchParams.get("eventtoken") ||
+    (() => {
+      for (const [k, v] of request.nextUrl.searchParams.entries()) {
+        if (k.toLowerCase() === "eventtoken" && v.trim()) return v.trim();
+      }
+      return null;
+    })();
   if (!eventToken || !validateEventToken(eventToken)) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
