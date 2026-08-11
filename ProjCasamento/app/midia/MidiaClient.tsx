@@ -108,7 +108,7 @@ export default function MidiaClient({ eventToken }: Props) {
               <p className={presentesLabelClass}>Enviar fotos e vídeos</p>
               <p className="mb-6 font-sans text-sm leading-relaxed text-invite-olive/70">
                 Tire pela câmera ou escolha da galeria. Vá montando a lista e envie tudo de uma vez.
-                Fotos até 10&nbsp;MB · vídeos até 50&nbsp;MB.
+                Fotos são compactadas no celular · vídeos curtos (até ~3,8&nbsp;MB).
               </p>
               <UploadFotos eventToken={eventToken} />
             </div>

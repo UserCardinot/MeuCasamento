@@ -5,10 +5,13 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolvePhotoUpload } from "@/lib/photo-moment";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_FOTO_BYTES = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50MB (local/dev; Vercel Hobby ~4.5MB no body)
-const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5MB
+/** Na Vercel Hobby o body ~4,5MB; local aceita mais. */
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+const VERCEL_SAFE_BYTES = 4.2 * 1024 * 1024;
 
 const FOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
 const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/3gpp"];
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
   const eventToken = formData.get("eventToken")?.toString();
   let tipo = formData.get("tipo")?.toString();
   const nome = formData.get("nome")?.toString()?.trim() || "Anônimo";
+  const captureAt = formData.get("captureAt")?.toString()?.trim() || null;
   const file = formData.get("file");
 
   if (!eventToken || !validateEventToken(eventToken)) {
@@ -81,6 +85,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Em produção (Vercel), body acima de ~4,5MB costuma falhar antes — avisa cedo se chegou grande
+  if (process.env.VERCEL && file.size > VERCEL_SAFE_BYTES) {
+    return NextResponse.json(
+      {
+        erro:
+          tipo === "video"
+            ? "Vídeo grande demais para enviar pelo celular neste momento. Tente um vídeo mais curto (até ~20s) ou envie pelo computador."
+            : "Arquivo ainda grande demais após o envio. Tente outra foto ou use o Wi‑Fi.",
+      },
+      { status: 413 }
+    );
+  }
+
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) {
     return NextResponse.json(
@@ -100,7 +117,7 @@ export async function POST(request: NextRequest) {
     let momento: string;
 
     if (tipo === "foto") {
-      const resolved = await resolvePhotoUpload(buffer);
+      const resolved = await resolvePhotoUpload(buffer, captureAt);
       folderId = resolved.folderId;
       momento = resolved.momento;
     } else if (tipo === "video") {
@@ -145,9 +162,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ sucesso: true, momento, tipo });
   } catch (err) {
     console.error("Erro ao enviar mídia:", err);
-    return NextResponse.json(
-      { erro: "Erro ao enviar. Verifique sua conexão e tente novamente." },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : "";
+    const hint =
+      /timeout|ETIMEDOUT|ECONNRESET|fetch failed/i.test(msg)
+        ? "A conexão caiu no meio do envio. Tente de novo no Wi‑Fi."
+        : /quota|storage|403|401|invalid_grant/i.test(msg)
+          ? "Falha ao salvar no Google Drive. Avise os noivos."
+          : "Erro ao enviar. Verifique sua conexão e tente novamente.";
+    return NextResponse.json({ erro: hint }, { status: 500 });
   }
 }

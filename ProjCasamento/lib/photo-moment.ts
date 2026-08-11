@@ -122,13 +122,15 @@ function folderIdForMomento(momento: PhotoMomento): string | undefined {
 
 /**
  * Resolve pasta do Drive e rótulo do momento a partir do buffer da foto.
+ * `captureHint` (opcional): data/hora lida no cliente antes da compressão (EXIF se perde no canvas).
  * Fallback: Outros (sem EXIF, fora do dia, antes do primeiro segmento).
- * Se a pasta do momento faltar, tenta OUTROS e por último FOTOS (legado).
  */
 export async function resolvePhotoUpload(
-  buffer: Buffer
+  buffer: Buffer,
+  captureHint?: string | null
 ): Promise<PhotoMomentResult> {
-  const capture = await extractCaptureLocal(buffer);
+  const fromHint = captureHint ? parseExifLocal(captureHint) : null;
+  const capture = fromHint || (await extractCaptureLocal(buffer));
   const momento = resolveMomento(capture);
 
   const folderId =
