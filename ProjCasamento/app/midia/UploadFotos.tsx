@@ -23,10 +23,14 @@ type QueueItem = {
   erro?: string;
 };
 
-const MAX_FOTO_MB = 15;
-const MAX_VIDEO_MB = 50;
-const MAX_VIDEO_UPLOAD_MB = 3.8;
+const MAX_FOTO_MB = 100;
+const MAX_VIDEO_MB = 1024; // 1 GB
 const MAX_ITENS = 20;
+
+function isOnVercelHost() {
+  if (typeof window === "undefined") return false;
+  return /\.vercel\.app$/i.test(window.location.hostname);
+}
 
 function isVideo(file: File) {
   return file.type.startsWith("video/");
@@ -45,10 +49,11 @@ function validateFile(file: File): string | null {
   }
   if (isVideo(file)) {
     if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      return `Vídeo muito grande (máx. ${MAX_VIDEO_MB}MB).`;
+      return `Vídeo muito grande (máx. 1GB).`;
     }
-    if (file.size > MAX_VIDEO_UPLOAD_MB * 1024 * 1024) {
-      return `Vídeo grande demais para o celular (máx. ~${MAX_VIDEO_UPLOAD_MB}MB / ~15–20s). Grave mais curto ou envie no computador.`;
+    // Vercel Hobby ~4,5MB — na VPS liberamos até 1GB
+    if (isOnVercelHost() && file.size > 3.8 * 1024 * 1024) {
+      return `Neste site (Vercel) o vídeo precisa ser curto (~3,8MB). Use meucasamento.lumenemotion.com.br para vídeos maiores.`;
     }
     return null;
   }
@@ -167,14 +172,14 @@ export default function UploadFotos({ eventToken }: Props) {
           } catch {
             fileToSend = item.file;
           }
-          if (fileToSend.size > 4.2 * 1024 * 1024) {
+          if (isOnVercelHost() && fileToSend.size > 4.2 * 1024 * 1024) {
             setItens((prev) =>
               prev.map((i) =>
                 i.id === item.id
                   ? {
                       ...i,
                       status: "error",
-                      erro: "Foto ainda grande demais. Tente outra ou use Wi‑Fi no computador.",
+                      erro: "Foto ainda grande demais neste host (Vercel). Use meucasamento.lumenemotion.com.br.",
                     }
                   : i
               )
@@ -279,7 +284,7 @@ export default function UploadFotos({ eventToken }: Props) {
           </button>
         </div>
         <p className="mt-2 font-sans text-xs text-invite-olive/55">
-          No celular, as fotos são compactadas antes de enviar. Vídeos: prefira até ~15–20s.
+          Fotos até 100&nbsp;MB · vídeos até 1&nbsp;GB. Em Wi‑Fi fica bem mais rápido.
         </p>
 
         <input

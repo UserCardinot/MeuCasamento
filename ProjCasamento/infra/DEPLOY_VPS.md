@@ -81,4 +81,4 @@ https://meucasamento.lumenemotion.com.br/midia?eventToken=SEU_EVENT_TOKEN
 
 ## Limite de upload
 
-Nginx: `client_max_body_size 50m` — vídeos maiores que na Vercel.
+Nginx: `client_max_body_size 1024m` — fotos até 100MB, vídeos até 1GB.

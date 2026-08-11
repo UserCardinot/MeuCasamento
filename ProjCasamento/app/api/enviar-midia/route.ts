@@ -5,11 +5,11 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolvePhotoUpload } from "@/lib/photo-moment";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+/** Uploads grandes (até 1 GB) na VPS — Vercel ignora / corta antes. */
+export const maxDuration = 900;
 
-const MAX_FOTO_BYTES = 10 * 1024 * 1024; // 10MB
-/** Na Vercel Hobby o body ~4,5MB; local aceita mais. */
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_FOTO_BYTES = 100 * 1024 * 1024; // 100MB
+const MAX_VIDEO_BYTES = 1024 * 1024 * 1024; // 1GB
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 const VERCEL_SAFE_BYTES = 4.2 * 1024 * 1024;
 
@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
   const maxSize =
     tipo === "foto" ? MAX_FOTO_BYTES : tipo === "video" ? MAX_VIDEO_BYTES : MAX_AUDIO_BYTES;
   if (file.size > maxSize) {
-    const mb = tipo === "foto" ? 10 : tipo === "video" ? 50 : 5;
+    const label =
+      tipo === "foto" ? "100MB" : tipo === "video" ? "1GB" : "5MB";
     return NextResponse.json(
-      { erro: `Arquivo muito grande. Máximo ${mb}MB.` },
+      { erro: `Arquivo muito grande. Máximo ${label}.` },
       { status: 400 }
     );
   }
