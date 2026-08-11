@@ -1,10 +1,12 @@
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
-import { validateEventToken } from "@/lib/auth";
+import { pickEventTokenParam, validateEventToken } from "@/lib/auth";
 import { presentesCard, presentesColuna } from "@/app/presentes/presentesTheme";
 import MidiaClient from "./MidiaClient";
 
 type Props = {
-  searchParams: Promise<{ eventToken?: string | string[] }> | { eventToken?: string | string[] };
+  searchParams:
+    | Promise<Record<string, string | string[] | undefined>>
+    | Record<string, string | string[] | undefined>;
 };
 
 function ErroMidia({ mensagem, detalhe }: { mensagem: string; detalhe?: string }) {
@@ -22,10 +24,7 @@ function ErroMidia({ mensagem, detalhe }: { mensagem: string; detalhe?: string }
 
 export default async function MidiaPage({ searchParams }: Props) {
   const params = await searchParams;
-  const raw = params?.eventToken;
-  const eventToken = (typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined)
-    ?.toString()
-    .trim();
+  const eventToken = pickEventTokenParam(params);
 
   if (!eventToken) {
     return (
