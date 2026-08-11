@@ -72,7 +72,7 @@
   | Aba **Convidados** | token | nome | acompanhantes | contato | data_cadastro |
   | Aba **Presenças**  | token | confirmado | telefone | mensagem | nomes_acompanhantes | data |
   | Aba **Presentes**  | token | presente | valor | data |
-  | Aba **Uploads**    | tipo | nome | arquivo | data |
+  | Aba **Uploads**    | tipo | nome | arquivo | data | momento |
   | Aba **Recados**    | token | nome | mensagem | data |
   | Aba **CatalogoPresentes** | nome | preco | url | imagem | ativo |
 

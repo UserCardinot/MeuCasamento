@@ -1,140 +1,391 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  presentesBtnOutline,
+  presentesBtnPrimary,
+  presentesFieldClass,
+  presentesLabelClass,
+} from "@/app/presentes/presentesTheme";
 
 type Props = { eventToken: string };
 
-const MAX_SIZE_MB = 10;
-const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+type ItemStatus = "pending" | "uploading" | "done" | "error";
+
+type QueueItem = {
+  id: string;
+  file: File;
+  kind: "foto" | "video";
+  previewUrl: string;
+  status: ItemStatus;
+  erro?: string;
+};
+
+const MAX_FOTO_MB = 10;
+const MAX_VIDEO_MB = 50;
+const MAX_ITENS = 20;
+
+function isVideo(file: File) {
+  return file.type.startsWith("video/");
+}
+
+function isImage(file: File) {
+  return file.type.startsWith("image/");
+}
+
+function validateFile(file: File): string | null {
+  if (isImage(file)) {
+    if (file.size > MAX_FOTO_MB * 1024 * 1024) {
+      return `Foto muito grande (máx. ${MAX_FOTO_MB}MB).`;
+    }
+    return null;
+  }
+  if (isVideo(file)) {
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      return `Vídeo muito grande (máx. ${MAX_VIDEO_MB}MB).`;
+    }
+    return null;
+  }
+  return "Formato não suportado. Use foto ou vídeo.";
+}
 
 export default function UploadFotos({ eventToken }: Props) {
-  const [file, setFile] = useState<File | null>(null);
+  const [itens, setItens] = useState<QueueItem[]>([]);
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [erroGeral, setErroGeral] = useState("");
+  const [enviadosOk, setEnviadosOk] = useState(0);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    setErro("");
-    setSucesso(false);
-    if (!f) {
-      setFile(null);
-      return;
-    }
-    if (!ALLOWED_TYPES.includes(f.type)) {
-      setErro("Formato inválido. Use JPG, PNG, WebP ou GIF.");
-      setFile(null);
-      return;
-    }
-    if (f.size > MAX_BYTES) {
-      setErro(`Arquivo muito grande. Máximo ${MAX_SIZE_MB}MB.`);
-      setFile(null);
-      return;
-    }
-    setFile(f);
-  }
+  const cameraFotoRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLInputElement>(null);
+  const galeriaRef = useRef<HTMLInputElement>(null);
+  const baseId = useId();
+  const seq = useRef(0);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!file) {
-      setErro("Selecione uma foto.");
-      return;
-    }
-    setErro("");
-    setLoading(true);
-    setSucesso(false);
+  useEffect(() => {
+    return () => {
+      itens.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup só no unmount
+  }, []);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("tipo", "foto");
-      formData.append("eventToken", eventToken);
-      if (nome.trim()) formData.append("nome", nome.trim());
+  const addFiles = useCallback((list: FileList | File[] | null) => {
+    if (!list) return;
+    setErroGeral("");
+    setEnviadosOk(0);
 
-      const res = await fetch("/api/enviar-midia", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErro(data.erro || "Erro ao enviar. Tente novamente.");
-        return;
+    const incoming = Array.from(list);
+    setItens((prev) => {
+      const room = MAX_ITENS - prev.length;
+      if (room <= 0) {
+        setErroGeral(`Máximo de ${MAX_ITENS} arquivos na lista.`);
+        return prev;
       }
 
-      setSucesso(true);
-      setFile(null);
-      setNome("");
-      if (inputRef.current) inputRef.current.value = "";
-    } catch {
-      setErro("Erro de conexão. Tente novamente mais tarde.");
-    } finally {
-      setLoading(false);
+      const next: QueueItem[] = [...prev];
+      const erros: string[] = [];
+
+      for (const file of incoming.slice(0, room)) {
+        const err = validateFile(file);
+        if (err) {
+          erros.push(`${file.name}: ${err}`);
+          continue;
+        }
+        seq.current += 1;
+        next.push({
+          id: `${baseId}-${seq.current}`,
+          file,
+          kind: isVideo(file) ? "video" : "foto",
+          previewUrl: URL.createObjectURL(file),
+          status: "pending",
+        });
+      }
+
+      if (incoming.length > room) {
+        erros.push(`Só cabem mais ${room} na lista (máx. ${MAX_ITENS}).`);
+      }
+      if (erros.length) setErroGeral(erros.slice(0, 3).join(" "));
+      return next;
+    });
+  }, [baseId]);
+
+  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(e.target.files);
+    e.target.value = "";
+  }
+
+  function removerItem(id: string) {
+    setItens((prev) => {
+      const item = prev.find((i) => i.id === id);
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((i) => i.id !== id);
+    });
+  }
+
+  function limparConcluidos() {
+    setItens((prev) => {
+      prev.filter((i) => i.status === "done").forEach((i) => URL.revokeObjectURL(i.previewUrl));
+      return prev.filter((i) => i.status !== "done");
+    });
+  }
+
+  async function enviarFila(e: React.FormEvent) {
+    e.preventDefault();
+    const pendentes = itens.filter((i) => i.status === "pending" || i.status === "error");
+    if (pendentes.length === 0) {
+      setErroGeral("Adicione fotos ou vídeos à lista.");
+      return;
+    }
+
+    setLoading(true);
+    setErroGeral("");
+    setEnviadosOk(0);
+    let okCount = 0;
+
+    for (const item of pendentes) {
+      setItens((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: "uploading", erro: undefined } : i))
+      );
+
+      try {
+        const formData = new FormData();
+        formData.append("file", item.file);
+        formData.append("tipo", item.kind);
+        formData.append("eventToken", eventToken);
+        if (nome.trim()) formData.append("nome", nome.trim());
+
+        const res = await fetch("/api/enviar-midia", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setItens((prev) =>
+            prev.map((i) =>
+              i.id === item.id
+                ? { ...i, status: "error", erro: data.erro || "Falha no envio" }
+                : i
+            )
+          );
+          continue;
+        }
+
+        okCount += 1;
+        setEnviadosOk(okCount);
+        setItens((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i))
+        );
+      } catch {
+        setItens((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? { ...i, status: "error", erro: "Erro de conexão" }
+              : i
+          )
+        );
+      }
+    }
+
+    setLoading(false);
+    if (okCount > 0) {
+      // remove enviados após breve feedback
+      setTimeout(() => limparConcluidos(), 1200);
     }
   }
 
+  const pendentes = itens.filter((i) => i.status === "pending" || i.status === "error").length;
+  const btnClass =
+    "font-invite-caps flex flex-1 flex-col items-center justify-center gap-1.5 border border-invite-olive/35 bg-white/70 px-3 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-invite-olive transition-colors hover:border-invite-olive/55 hover:bg-white/90 active:scale-[0.99] sm:text-[0.7rem]";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={enviarFila} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1">
+        <label htmlFor="midia-nome" className={presentesLabelClass}>
           Seu nome (opcional)
         </label>
         <input
+          id="midia-nome"
           type="text"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex: Maria"
-          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all"
+          className={presentesFieldClass}
+          autoComplete="name"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-2">
-          Escolher foto (máx. {MAX_SIZE_MB}MB)
-        </label>
+        <p className={presentesLabelClass}>Adicionar à lista</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            className={btnClass}
+            onClick={() => cameraFotoRef.current?.click()}
+          >
+            Tirar foto
+          </button>
+          <button
+            type="button"
+            className={btnClass}
+            onClick={() => cameraVideoRef.current?.click()}
+          >
+            Gravar vídeo
+          </button>
+          <button
+            type="button"
+            className={btnClass}
+            onClick={() => galeriaRef.current?.click()}
+          >
+            Da galeria
+          </button>
+        </div>
+        <p className="mt-2 font-sans text-xs text-invite-olive/55">
+          No celular, “Tirar foto” / “Grav. vídeo” abrem a câmera. Depois continue adicionando — a
+          lista acumula até você enviar.
+        </p>
+
+        {/* Câmera: foto */}
         <input
-          ref={inputRef}
+          ref={cameraFotoRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={handleFileChange}
-          className="block w-full text-sm text-stone-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-casamento-oliva-escuro file:rounded-xl file:text-white file:cursor-pointer hover:file:opacity-90"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={onInputChange}
         />
-        {file && (
-          <div className="mt-2 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={URL.createObjectURL(file)}
-              alt="Preview"
-              className="h-20 w-20 object-cover rounded border border-stone-200"
-            />
-            <span className="text-sm text-stone-600">{file.name}</span>
-          </div>
-        )}
+        {/* Câmera: vídeo */}
+        <input
+          ref={cameraVideoRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="sr-only"
+          onChange={onInputChange}
+        />
+        {/* Galeria do aparelho (vários) */}
+        <input
+          ref={galeriaRef}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          className="sr-only"
+          onChange={onInputChange}
+        />
       </div>
 
-      {erro && (
-        <div className="space-y-2">
-          <p className="text-red-600 text-sm">{erro}</p>
-          <p className="text-stone-500 text-sm">
-            Verifique sua conexão e tente novamente.
-          </p>
+      {itens.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className={presentesLabelClass + " !mb-0"}>
+              Lista ({itens.length}/{MAX_ITENS})
+            </p>
+            {itens.some((i) => i.status === "done") && (
+              <button
+                type="button"
+                onClick={limparConcluidos}
+                className="font-invite-caps text-[0.62rem] uppercase tracking-[0.14em] text-invite-olive/60 hover:text-invite-olive"
+              >
+                Limpar enviados
+              </button>
+            )}
+          </div>
+
+          <ul className="space-y-2">
+            {itens.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center gap-3 border border-invite-olive/20 bg-white/60 p-2.5"
+              >
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-invite-cream sm:h-20 sm:w-20">
+                  {item.kind === "video" ? (
+                    <video
+                      src={item.previewUrl}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  <span className="absolute bottom-0 left-0 bg-invite-olive/90 px-1 py-0.5 font-invite-caps text-[0.55rem] uppercase tracking-wider text-white">
+                    {item.kind === "video" ? "Vídeo" : "Foto"}
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-sans text-sm text-invite-olive">{item.file.name}</p>
+                  <p className="mt-0.5 font-sans text-xs text-invite-olive/55">
+                    {(item.file.size / (1024 * 1024)).toFixed(1)} MB
+                    {item.status === "pending" && " · na fila"}
+                    {item.status === "uploading" && " · enviando…"}
+                    {item.status === "done" && " · enviado"}
+                    {item.status === "error" && ` · ${item.erro || "erro"}`}
+                  </p>
+                </div>
+
+                {item.status !== "uploading" && (
+                  <button
+                    type="button"
+                    onClick={() => removerItem(item.id)}
+                    className="shrink-0 font-invite-caps text-[0.6rem] uppercase tracking-[0.12em] text-invite-olive/50 hover:text-invite-olive"
+                    aria-label="Remover"
+                  >
+                    Remover
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-      {sucesso && (
-        <p className="text-casamento-oliva-escuro font-medium flex items-center gap-2">✓ Foto enviada com sucesso!</p>
+
+      {erroGeral && (
+        <div className="border border-red-300/50 bg-red-50/80 px-4 py-3" role="alert">
+          <p className="font-sans text-sm text-red-800">{erroGeral}</p>
+        </div>
+      )}
+
+      {enviadosOk > 0 && !loading && (
+        <div className="border border-invite-olive/30 bg-invite-olive/10 px-4 py-3" role="status">
+          <p className="font-invite-caps text-[0.7rem] font-medium uppercase tracking-[0.14em] text-invite-olive">
+            {enviadosOk === 1 ? "1 arquivo enviado" : `${enviadosOk} arquivos enviados`}
+          </p>
+        </div>
       )}
 
       <button
         type="submit"
-        disabled={loading || !file}
-        className="w-full py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
+        disabled={loading || pendentes === 0}
+        className={presentesBtnPrimary}
       >
-        {loading ? "Enviando..." : "Enviar foto"}
+        {loading
+          ? "Enviando…"
+          : pendentes > 1
+            ? `Enviar ${pendentes} arquivos`
+            : pendentes === 1
+              ? "Enviar 1 arquivo"
+              : "Enviar"}
       </button>
+
+      {itens.length > 0 && !loading && (
+        <button
+          type="button"
+          onClick={() => {
+            itens.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+            setItens([]);
+            setEnviadosOk(0);
+          }}
+          className={presentesBtnOutline}
+        >
+          Limpar lista
+        </button>
+      )}
     </form>
   );
 }

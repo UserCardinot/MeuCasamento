@@ -21,7 +21,7 @@ export async function GET() {
       readFromSheet(sheetId, "Convidados!A2:F"),
       readFromSheet(sheetId, "Presenças!A2:E"),
       readFromSheet(sheetId, "Presentes!A2:D"),
-      readFromSheet(sheetId, "Uploads!A2:D"),
+      readFromSheet(sheetId, "Uploads!A2:E"),
       readFromSheet(sheetId, "Recados!A2:D").catch(() => []),
       readFromSheet(sheetId, "CatalogoPresentes!A2:E").catch(() => []),
     ]);
@@ -87,6 +87,7 @@ export async function GET() {
       nome: row[1],
       arquivo: row[2],
       data: row[3],
+      momento: row[4] ? String(row[4]) : undefined,
     }));
 
     const catalogoFormatado = (catalogoPresentes as (string | number)[][]).map((row) => {

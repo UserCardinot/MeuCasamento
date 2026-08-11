@@ -73,7 +73,7 @@ Siga estes passos para configurar Google Sheets e Drive no projeto.
 | token | presente | valor | data |
 
 **Aba "Uploads"**:
-| tipo | nome | arquivo | data |
+| tipo | nome | arquivo | data | momento |
 
 Na primeira linha de cada aba, escreva exatamente esses cabeçalhos.
 
@@ -96,7 +96,11 @@ Na primeira linha de cada aba, escreva exatamente esses cabeçalhos.
 1. Acesse [drive.google.com](https://drive.google.com)
 2. Crie pasta: `Casamento Lucas & Beatriz` (ou outro nome)
 3. Dentro dela, crie:
-   - `Fotos`
+   - `Fotos` (pasta pai)
+     - `Cerimonia`
+     - `Recepcao`
+     - `Cafe`
+     - `Outros` (sem EXIF / fora do horário do evento)
    - `Audios`
 
 ### 4.2 Obter IDs das pastas
@@ -108,10 +112,24 @@ Na primeira linha de cada aba, escreva exatamente esses cabeçalhos.
 ```
 GOOGLE_DRIVE_FOLDER_FOTOS=1abc123...
 GOOGLE_DRIVE_FOLDER_AUDIOS=1xyz789...
+GOOGLE_DRIVE_FOLDER_CERIMONIA=...
+GOOGLE_DRIVE_FOLDER_RECEPCAO=...
+GOOGLE_DRIVE_FOLDER_CAFE=...
+GOOGLE_DRIVE_FOLDER_OUTROS=...
+
+# Classificação por EXIF (hora da foto, não do upload).
+# Os três inícios são ordenados no tempo — Recepção pode vir antes da Cerimônia.
+EVENT_DATE=2026-09-26
+EVENT_TZ=America/Sao_Paulo
+EVENT_CERIMONIA_INICIO=09:20
+EVENT_RECEPCAO_INICIO=08:00
+EVENT_CAFE_INICIO=10:10
 ```
 
+Na planilha, aba **Uploads**, use cabeçalhos: `tipo | nome | arquivo | data | momento`.
+
 ### 4.4 Compartilhar pastas
-- Compartilhe as pastas com o mesmo e-mail usado no OAuth
+- Compartilhe a pasta pai e as subpastas com o mesmo e-mail usado no OAuth (ou service account)
 - Permissão: **Editor**
 
 ---
@@ -128,6 +146,16 @@ GOOGLE_REFRESH_TOKEN=xxx
 GOOGLE_SHEET_ID=xxx
 GOOGLE_DRIVE_FOLDER_FOTOS=xxx
 GOOGLE_DRIVE_FOLDER_AUDIOS=xxx
+GOOGLE_DRIVE_FOLDER_CERIMONIA=xxx
+GOOGLE_DRIVE_FOLDER_RECEPCAO=xxx
+GOOGLE_DRIVE_FOLDER_CAFE=xxx
+GOOGLE_DRIVE_FOLDER_OUTROS=xxx
+
+EVENT_DATE=2026-09-26
+EVENT_TZ=America/Sao_Paulo
+EVENT_CERIMONIA_INICIO=09:20
+EVENT_RECEPCAO_INICIO=08:00
+EVENT_CAFE_INICIO=10:10
 
 # Tokens
 EVENT_TOKEN=evt_xxx

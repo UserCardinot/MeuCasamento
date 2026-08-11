@@ -14,13 +14,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const rows = await readFromSheet(sheetId, "Uploads!A2:D");
+    const rows = await readFromSheet(sheetId, "Uploads!A2:E");
     const fotos = (rows as (string | number)[][])
-      .filter((row) => String(row[0] ?? "").toLowerCase() === "foto")
+      .filter((row) => {
+        const t = String(row[0] ?? "").toLowerCase();
+        return t === "foto" || t === "video";
+      })
       .map((row) => ({
         nome: String(row[1] ?? "Anônimo"),
         arquivo: String(row[2] ?? ""),
         data: String(row[3] ?? ""),
+        momento: String(row[4] ?? ""),
+        tipo: String(row[0] ?? "foto").toLowerCase(),
       }));
     return NextResponse.json({ fotos });
   } catch (err) {

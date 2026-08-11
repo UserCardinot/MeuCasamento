@@ -29,7 +29,7 @@ type DadosAdmin = {
   }[];
   presencas: { token: string; nome?: string; confirmado: string; nomesAcompanhantes?: string; data: string; origem?: string }[];
   presentes: { token: string; nome?: string; presente: string; valor: string; data: string }[];
-  uploads: { tipo: string; nome: string; arquivo: string; data: string }[];
+  uploads: { tipo: string; nome: string; arquivo: string; data: string; momento?: string }[];
   recados?: { token: string; nome: string; mensagem: string; data: string }[];
   catalogoPresentes?: { nomeOriginal: string; nome: string; preco: string; url: string; imagem: string; ativo: string }[];
   resumo: { totalConvidados: number; totalPresencas: number; totalPresentes: number; totalUploads: number; totalRecados?: number };
@@ -1214,6 +1214,7 @@ export default function Dashboard() {
                       <thead>
                         <tr className={THEAD_ROW}>
                           <th className="px-4 py-3">Tipo</th>
+                          <th className="px-4 py-3">Momento</th>
                           <th className="px-4 py-3">Nome</th>
                           <th className="px-4 py-3">Arquivo</th>
                           <th className="px-4 py-3">Data</th>
@@ -1227,6 +1228,7 @@ export default function Dashboard() {
                                 {u.tipo}
                               </span>
                             </td>
+                            <td className="px-4 py-3.5 text-zinc-600">{u.momento || "—"}</td>
                             <td className="px-4 py-3.5 font-medium text-zinc-900">{u.nome}</td>
                             <td className="px-4 py-3.5">
                               {u.arquivo?.startsWith("http") ? (

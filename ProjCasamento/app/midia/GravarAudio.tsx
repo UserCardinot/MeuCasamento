@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  presentesBtnOutline,
+  presentesBtnPrimary,
+  presentesFieldClass,
+  presentesLabelClass,
+} from "@/app/presentes/presentesTheme";
 
 type Props = { eventToken: string };
 
-const MAX_DURATION_MS = 60 * 1000; // 1 minuto
+const MAX_DURATION_MS = 60 * 1000;
 const MAX_SIZE_MB = 5;
 
 export default function GravarAudio({ eventToken }: Props) {
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -24,6 +31,16 @@ export default function GravarAudio({ eventToken }: Props) {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!audioBlob) {
+      setAudioUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(audioBlob);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [audioBlob]);
 
   async function startRecording() {
     setErro("");
@@ -118,60 +135,62 @@ export default function GravarAudio({ eventToken }: Props) {
     }
   }
 
+  const tempo = `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")}`;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1">
+        <label htmlFor="audio-nome" className={presentesLabelClass}>
           Seu nome (opcional)
         </label>
         <input
+          id="audio-nome"
           type="text"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           placeholder="Ex: João"
-          className="w-full px-5 py-4 border border-stone-200 rounded-2xl bg-white focus:ring-2 focus:ring-casamento-oliva focus:border-transparent placeholder:text-stone-400 transition-all"
+          className={presentesFieldClass}
         />
       </div>
 
-      <div>
-        <p className="text-sm text-stone-600 mb-2">
-          Máximo 1 minuto. Clique em gravar e fale sua mensagem.
-        </p>
+      <div className="border border-invite-olive/25 bg-white/50 px-5 py-8 text-center sm:px-8 sm:py-10">
         {!recording && !audioBlob && (
-          <button
-            type="button"
-            onClick={startRecording}
-            className="px-6 py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
-          >
-            🎙️ Gravar
+          <button type="button" onClick={startRecording} className={`${presentesBtnPrimary} max-w-xs`}>
+            Começar gravação
           </button>
         )}
+
         {recording && (
-          <div className="flex items-center gap-4">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-stone-600">
-              {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, "0")} / 1:00
-            </span>
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+              </span>
+              <span className="font-invite-caps text-sm tracking-[0.12em] text-invite-olive">
+                Gravando {tempo} / 1:00
+              </span>
+            </div>
             <button
               type="button"
               onClick={stopRecording}
-              className="px-4 py-2 bg-red-500 text-white rounded-2xl hover:bg-red-600 focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:outline-none"
+              className="font-invite-caps border-2 border-red-600/80 bg-red-600 px-8 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-white transition-transform hover:scale-[1.01]"
             >
               Parar
             </button>
           </div>
         )}
-        {audioBlob && !recording && (
-          <div className="space-y-2">
-            <audio
-              src={URL.createObjectURL(audioBlob)}
-              controls
-              className="w-full max-w-md"
-            />
+
+        {audioBlob && !recording && audioUrl && (
+          <div className="space-y-4">
+            <audio src={audioUrl} controls className="mx-auto w-full max-w-md" />
             <button
               type="button"
-              onClick={() => { setAudioBlob(null); setDuration(0); }}
-              className="text-sm text-stone-500 hover:text-stone-700"
+              onClick={() => {
+                setAudioBlob(null);
+                setDuration(0);
+              }}
+              className={`${presentesBtnOutline} max-w-xs`}
             >
               Gravar de novo
             </button>
@@ -180,23 +199,20 @@ export default function GravarAudio({ eventToken }: Props) {
       </div>
 
       {erro && (
-        <div className="space-y-2">
-          <p className="text-red-600 text-sm">{erro}</p>
-          <p className="text-stone-500 text-sm">
-            Verifique sua conexão e tente novamente.
-          </p>
+        <div className="border border-red-300/50 bg-red-50/80 px-4 py-3" role="alert">
+          <p className="font-sans text-sm text-red-800">{erro}</p>
         </div>
       )}
       {sucesso && (
-        <p className="text-casamento-oliva-escuro font-medium">✓ Áudio enviado com sucesso!</p>
+        <div className="border border-invite-olive/30 bg-invite-olive/10 px-4 py-3" role="status">
+          <p className="font-invite-caps text-[0.7rem] font-medium uppercase tracking-[0.14em] text-invite-olive">
+            Áudio enviado com sucesso
+          </p>
+        </div>
       )}
 
-      <button
-        type="submit"
-        disabled={loading || !audioBlob}
-        className="w-full py-4 bg-casamento-oliva-escuro text-white font-sans font-medium rounded-2xl hover:bg-casamento-oliva disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm focus:ring-2 focus:ring-casamento-oliva focus:ring-offset-2 focus:outline-none"
-      >
-        {loading ? "Enviando..." : "Enviar áudio"}
+      <button type="submit" disabled={loading || !audioBlob} className={presentesBtnPrimary}>
+        {loading ? "Enviando…" : "Enviar áudio"}
       </button>
     </form>
   );

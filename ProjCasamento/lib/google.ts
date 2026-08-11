@@ -24,38 +24,51 @@ let oauthSingleton: OAuth2Client | null = null;
 async function getAuthClient(): Promise<JWT | OAuth2Client> {
   const saRaw =
     process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ||
-    (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
-      ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64, "base64").toString("utf8")
+    (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64?.trim()
+      ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64.trim(), "base64").toString("utf8")
       : "");
 
-  if (saRaw) {
+  const saUsable =
+    saRaw &&
+    !saRaw.includes("[SENSITIVE]") &&
+    saRaw.trim().startsWith("{");
+
+  if (saUsable) {
     let creds: { client_email?: string; private_key?: string };
     try {
       creds = JSON.parse(saRaw) as { client_email?: string; private_key?: string };
     } catch {
-      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON inválido: esperado JSON da service account");
+      // Placeholder / JSON inválido → cai no OAuth abaixo
+      creds = {};
     }
-    if (!creds.client_email || !creds.private_key) {
-      throw new Error("JSON da service account deve ter client_email e private_key");
+    if (creds.client_email && creds.private_key) {
+      if (!jwtClient) {
+        jwtClient = new google.auth.JWT({
+          email: creds.client_email,
+          key: creds.private_key,
+          scopes: GOOGLE_SCOPES,
+        });
+        await jwtClient.authorize();
+      }
+      return jwtClient;
     }
-    if (!jwtClient) {
-      jwtClient = new google.auth.JWT({
-        email: creds.client_email,
-        key: creds.private_key,
-        scopes: GOOGLE_SCOPES,
-      });
-      await jwtClient.authorize();
-    }
-    return jwtClient;
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
 
-  if (!clientId || !clientSecret || !refreshToken) {
+  const oauthUsable =
+    clientId &&
+    clientSecret &&
+    refreshToken &&
+    !clientId.includes("[SENSITIVE]") &&
+    !clientSecret.includes("[SENSITIVE]") &&
+    !refreshToken.includes("[SENSITIVE]");
+
+  if (!oauthUsable) {
     throw new Error(
-      "Google: defina GOOGLE_SERVICE_ACCOUNT_JSON (recomendado) ou GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN"
+      "Google: defina GOOGLE_SERVICE_ACCOUNT_JSON (recomendado) ou GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN válidos"
     );
   }
 
@@ -71,6 +84,22 @@ async function getAuthClient(): Promise<JWT | OAuth2Client> {
 }
 
 /**
+ * Aceita só o ID ou URL colada do Sheets
+ * (ex.: .../d/ID/edit?gid=0 → ID).
+ */
+export function normalizeSpreadsheetId(raw: string): string {
+  const trimmed = raw.trim().replace(/^["']|["']$/g, "");
+  const fromUrl = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (fromUrl) return fromUrl[1];
+  const withoutEdit = trimmed.split("/edit")[0]?.split("?")[0] ?? trimmed;
+  return withoutEdit.trim();
+}
+
+function resolveSheetId(sheetId: string): string {
+  return normalizeSpreadsheetId(sheetId);
+}
+
+/**
  * Adiciona linhas ao final de uma aba do Sheets
  */
 export async function appendToSheet(
@@ -81,7 +110,7 @@ export async function appendToSheet(
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.append({
-    spreadsheetId: sheetId,
+    spreadsheetId: resolveSheetId(sheetId),
     range,
     valueInputOption: "USER_ENTERED",
     requestBody: { values },
@@ -97,11 +126,11 @@ export async function readFromSheet(
 ): Promise<unknown[][]> {
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: resolveSheetId(sheetId),
     range,
   });
-  return (response.data.values as unknown[][]) || [];
+  return (res.data.values as unknown[][]) || [];
 }
 
 /**
@@ -113,7 +142,7 @@ export async function getSheetIdByTitle(
 ): Promise<number | null> {
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
-  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: resolveSheetId(spreadsheetId) });
   const found = meta.data.sheets?.find((s) => s.properties?.title === title);
   const id = found?.properties?.sheetId;
   return id !== undefined && id !== null ? id : null;
@@ -146,7 +175,7 @@ export async function deleteConvidadoRow(
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
+    spreadsheetId: resolveSheetId(spreadsheetId),
     requestBody: {
       requests: [
         {
@@ -200,7 +229,7 @@ export async function updateConvidadoRow(
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.update({
-    spreadsheetId,
+    spreadsheetId: resolveSheetId(spreadsheetId),
     range,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [newRow] },
@@ -247,7 +276,7 @@ export async function updateCatalogoPresenteRow(
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.update({
-    spreadsheetId,
+    spreadsheetId: resolveSheetId(spreadsheetId),
     range,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [newRow] },
@@ -275,7 +304,7 @@ export async function deleteCatalogoPresenteRow(
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
+    spreadsheetId: resolveSheetId(spreadsheetId),
     requestBody: {
       requests: [
         {
@@ -369,7 +398,7 @@ export async function upsertPresencaRow(
 
   if (idx === -1) {
     await sheets.spreadsheets.values.append({
-      spreadsheetId,
+      spreadsheetId: resolveSheetId(spreadsheetId),
       range: `${PRESENCAS_SHEET}!A:E`,
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
@@ -380,7 +409,7 @@ export async function upsertPresencaRow(
 
   const sheetRow = idx + 2;
   await sheets.spreadsheets.values.update({
-    spreadsheetId,
+    spreadsheetId: resolveSheetId(spreadsheetId),
     range: `${PRESENCAS_SHEET}!A${sheetRow}:E${sheetRow}`,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [newRow] },

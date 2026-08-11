@@ -20,4 +20,5 @@ export interface Upload {
   nome: string;
   arquivo: string;
   data: string;
+  momento?: string;
 }
