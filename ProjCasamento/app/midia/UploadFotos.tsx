@@ -9,10 +9,17 @@ import {
 } from "@/app/presentes/presentesTheme";
 import { compressImageForUpload } from "@/lib/compress-image";
 import { readCaptureHint } from "@/lib/capture-hint";
+import {
+  formatBytes,
+  releaseScreenWakeLock,
+  requestScreenWakeLock,
+  uploadRawFileWithProgress,
+  uploadWithProgress,
+} from "@/lib/upload-with-progress";
 
 type Props = { eventToken: string };
 
-type ItemStatus = "pending" | "uploading" | "done" | "error";
+type ItemStatus = "pending" | "preparing" | "uploading" | "saving" | "done" | "error";
 
 type QueueItem = {
   id: string;
@@ -20,12 +27,14 @@ type QueueItem = {
   kind: "foto" | "video";
   previewUrl: string;
   status: ItemStatus;
+  /** 0–100 enquanto envia o arquivo */
+  progress?: number;
+  loadedBytes?: number;
+  totalBytes?: number;
   erro?: string;
 };
 
-const MAX_FOTO_MB = 100;
-const MAX_VIDEO_MB = 1024; // 1 GB
-const MAX_ITENS = 20;
+const MAX_ITENS = 100;
 
 function isOnVercelHost() {
   if (typeof window === "undefined") return false;
@@ -41,19 +50,11 @@ function isImage(file: File) {
 }
 
 function validateFile(file: File): string | null {
-  if (isImage(file)) {
-    if (file.size > MAX_FOTO_MB * 1024 * 1024) {
-      return `Foto muito grande (máx. ${MAX_FOTO_MB}MB).`;
-    }
-    return null;
-  }
+  if (isImage(file)) return null;
   if (isVideo(file)) {
-    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      return `Vídeo muito grande (máx. 1GB).`;
-    }
-    // Vercel Hobby ~4,5MB — na VPS liberamos até 1GB
+    // Só avisa no host Vercel (limite ~4,5MB do Hobby)
     if (isOnVercelHost() && file.size > 3.8 * 1024 * 1024) {
-      return `Neste site (Vercel) o vídeo precisa ser curto (~3,8MB). Use meucasamento.lumenemotion.com.br para vídeos maiores.`;
+      return `Neste site (Vercel) o vídeo precisa ser curto (~3,8MB). Use meucasamento.lumenemotion.com.br.`;
     }
     return null;
   }
@@ -66,6 +67,7 @@ export default function UploadFotos({ eventToken }: Props) {
   const [loading, setLoading] = useState(false);
   const [erroGeral, setErroGeral] = useState("");
   const [enviadosOk, setEnviadosOk] = useState(0);
+  const [filaInfo, setFilaInfo] = useState<{ atual: number; total: number } | null>(null);
 
   const cameraFotoRef = useRef<HTMLInputElement>(null);
   const cameraVideoRef = useRef<HTMLInputElement>(null);
@@ -156,9 +158,37 @@ export default function UploadFotos({ eventToken }: Props) {
     setEnviadosOk(0);
     let okCount = 0;
 
+    const totalFila = pendentes.length;
+    setFilaInfo({ atual: 0, total: totalFila });
+    let idxFila = 0;
+
+    const wake = await requestScreenWakeLock();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        setErroGeral(
+          "Não saia desta tela nem apague o celular enquanto envia — o navegador cancela o upload em segundo plano."
+        );
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    try {
     for (const item of pendentes) {
+      idxFila += 1;
+      setFilaInfo({ atual: idxFila, total: totalFila });
       setItens((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, status: "uploading", erro: undefined } : i))
+        prev.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                status: "preparing",
+                progress: 0,
+                loadedBytes: 0,
+                totalBytes: i.file.size,
+                erro: undefined,
+              }
+            : i
+        )
       );
 
       try {
@@ -167,56 +197,114 @@ export default function UploadFotos({ eventToken }: Props) {
 
         if (item.kind === "foto") {
           captureAt = await readCaptureHint(item.file);
-          try {
-            fileToSend = await compressImageForUpload(item.file);
-          } catch {
-            fileToSend = item.file;
-          }
-          if (isOnVercelHost() && fileToSend.size > 4.2 * 1024 * 1024) {
-            setItens((prev) =>
-              prev.map((i) =>
-                i.id === item.id
-                  ? {
-                      ...i,
-                      status: "error",
-                      erro: "Foto ainda grande demais neste host (Vercel). Use meucasamento.lumenemotion.com.br.",
-                    }
-                  : i
-              )
-            );
-            continue;
+          // Compacta só na Vercel (limite ~4,5MB). Na VPS envia original.
+          if (isOnVercelHost()) {
+            try {
+              fileToSend = await compressImageForUpload(item.file);
+            } catch {
+              fileToSend = item.file;
+            }
+            if (fileToSend.size > 4.2 * 1024 * 1024) {
+              setItens((prev) =>
+                prev.map((i) =>
+                  i.id === item.id
+                    ? {
+                        ...i,
+                        status: "error",
+                        erro: "Foto ainda grande demais neste host (Vercel). Use meucasamento.lumenemotion.com.br.",
+                      }
+                    : i
+                )
+              );
+              continue;
+            }
           }
         }
 
-        const formData = new FormData();
-        formData.append("file", fileToSend);
-        formData.append("tipo", item.kind);
-        formData.append("eventToken", eventToken);
-        if (nome.trim()) formData.append("nome", nome.trim());
-        if (captureAt) formData.append("captureAt", captureAt);
+        setItens((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? {
+                  ...i,
+                  status: "uploading",
+                  progress: 0,
+                  totalBytes: fileToSend.size,
+                }
+              : i
+          )
+        );
 
-        const res = await fetch("/api/enviar-midia", {
-          method: "POST",
-          body: formData,
-        });
+        const onProg = (p: { percent: number; loaded: number; total: number }) => {
+          setItens((prev) =>
+            prev.map((i) => {
+              if (i.id !== item.id) return i;
+              if (p.percent >= 100) {
+                return {
+                  ...i,
+                  status: "saving",
+                  progress: 100,
+                  loadedBytes: p.loaded,
+                  totalBytes: p.total,
+                };
+              }
+              return {
+                ...i,
+                status: "uploading",
+                progress: p.percent,
+                loadedBytes: p.loaded,
+                totalBytes: p.total,
+              };
+            })
+          );
+        };
 
+        // Vídeos (e arquivos grandes): corpo cru → menos RAM e progresso mais estável
+        const useRaw =
+          item.kind === "video" || fileToSend.size >= 40 * 1024 * 1024;
+
+        let ok = false;
         let data: { erro?: string } = {};
-        try {
-          data = await res.json();
-        } catch {
-          data = {
-            erro:
-              res.status === 413
-                ? "Arquivo grande demais para o servidor. Use foto menor ou vídeo mais curto."
-                : "Falha no envio. Tente de novo.",
-          };
+
+        if (useRaw) {
+          const result = await uploadRawFileWithProgress(
+            "/api/enviar-midia",
+            fileToSend,
+            {
+              "x-raw-upload": "1",
+              "x-event-token": eventToken,
+              "x-tipo": item.kind,
+              "x-nome": encodeURIComponent(nome.trim() || "Anônimo"),
+              "x-filename": encodeURIComponent(fileToSend.name || "video.mp4"),
+              "x-mime": fileToSend.type || "video/mp4",
+              "Content-Type": fileToSend.type || "application/octet-stream",
+            },
+            onProg
+          );
+          ok = result.ok;
+          data = result.data;
+        } else {
+          const formData = new FormData();
+          formData.append("file", fileToSend);
+          formData.append("tipo", item.kind);
+          formData.append("eventToken", eventToken);
+          if (nome.trim()) formData.append("nome", nome.trim());
+          if (captureAt) formData.append("captureAt", captureAt);
+
+          const result = await uploadWithProgress("/api/enviar-midia", formData, onProg);
+          ok = result.ok;
+          data = result.data;
         }
 
-        if (!res.ok) {
+        if (!ok) {
           setItens((prev) =>
             prev.map((i) =>
               i.id === item.id
-                ? { ...i, status: "error", erro: data.erro || "Falha no envio" }
+                ? {
+                    ...i,
+                    status: "error",
+                    erro: data.erro || "Falha no envio",
+                    progress: undefined,
+                  }
                 : i
             )
           );
@@ -226,7 +314,9 @@ export default function UploadFotos({ eventToken }: Props) {
         okCount += 1;
         setEnviadosOk(okCount);
         setItens((prev) =>
-          prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i))
+          prev.map((i) =>
+            i.id === item.id ? { ...i, status: "done", progress: 100 } : i
+          )
         );
       } catch {
         setItens((prev) =>
@@ -235,14 +325,21 @@ export default function UploadFotos({ eventToken }: Props) {
               ? {
                   ...i,
                   status: "error",
-                  erro: "Sem conexão ou arquivo grande demais. Tente no Wi‑Fi.",
+                  erro:
+                    "Envio interrompido. No celular, mantenha esta tela aberta e a tela ligada até terminar.",
+                  progress: undefined,
                 }
               : i
           )
         );
       }
     }
+    } finally {
+      document.removeEventListener("visibilitychange", onVisibility);
+      await releaseScreenWakeLock(wake);
+    }
 
+    setFilaInfo(null);
     setLoading(false);
     if (okCount > 0) {
       setTimeout(() => limparConcluidos(), 1200);
@@ -284,7 +381,8 @@ export default function UploadFotos({ eventToken }: Props) {
           </button>
         </div>
         <p className="mt-2 font-sans text-xs text-invite-olive/55">
-          Fotos até 100&nbsp;MB · vídeos até 1&nbsp;GB. Em Wi‑Fi fica bem mais rápido.
+          Sem limite de tamanho na VPS. Em vídeos grandes, mantenha esta tela aberta e a tela
+          ligada até terminar (o celular cancela envio em segundo plano).
         </p>
 
         <input
@@ -358,13 +456,45 @@ export default function UploadFotos({ eventToken }: Props) {
                   <p className="mt-0.5 font-sans text-xs text-invite-olive/55">
                     {(item.file.size / (1024 * 1024)).toFixed(1)} MB
                     {item.status === "pending" && " · na fila"}
-                    {item.status === "uploading" && " · enviando…"}
+                    {item.status === "preparing" && " · preparando…"}
+                    {item.status === "uploading" &&
+                      ` · enviando ${item.progress ?? 0}%` +
+                        (item.loadedBytes != null && item.totalBytes
+                          ? ` (${formatBytes(item.loadedBytes)} / ${formatBytes(item.totalBytes)})`
+                          : "")}
+                    {item.status === "saving" && " · salvando no álbum…"}
                     {item.status === "done" && " · enviado"}
                     {item.status === "error" && ` · ${item.erro || "erro"}`}
                   </p>
+                  {(item.status === "preparing" ||
+                    item.status === "uploading" ||
+                    item.status === "saving") && (
+                    <div
+                      className="mt-2 h-1.5 w-full overflow-hidden bg-invite-olive/15"
+                      role="progressbar"
+                      aria-valuenow={item.status === "preparing" ? 0 : item.progress ?? 0}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label="Progresso do envio"
+                    >
+                      <div
+                        className={`h-full bg-invite-olive transition-[width] duration-200 ease-out ${
+                          item.status === "saving" ? "animate-pulse" : ""
+                        }`}
+                        style={{
+                          width:
+                            item.status === "preparing"
+                              ? "8%"
+                              : `${Math.max(item.progress ?? 0, 2)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {item.status !== "uploading" && (
+                {item.status !== "uploading" &&
+                  item.status !== "preparing" &&
+                  item.status !== "saving" && (
                   <button
                     type="button"
                     onClick={() => removerItem(item.id)}
@@ -377,6 +507,16 @@ export default function UploadFotos({ eventToken }: Props) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {loading && (
+        <div className="border border-amber-700/25 bg-amber-50/90 px-4 py-3" role="status">
+          <p className="font-sans text-sm text-amber-950/90">
+            Envio em andamento
+            {filaInfo ? ` (${filaInfo.atual}/${filaInfo.total})` : ""}. Deixe esta página aberta
+            e a tela ligada — se bloquear ou trocar de app, o navegador costuma cancelar.
+          </p>
         </div>
       )}
 
@@ -395,13 +535,15 @@ export default function UploadFotos({ eventToken }: Props) {
       )}
 
       <button type="submit" disabled={loading || pendentes === 0} className={presentesBtnPrimary}>
-        {loading
-          ? "Enviando…"
-          : pendentes > 1
-            ? `Enviar ${pendentes} arquivos`
-            : pendentes === 1
-              ? "Enviar 1 arquivo"
-              : "Enviar"}
+        {loading && filaInfo
+          ? `Enviando ${filaInfo.atual}/${filaInfo.total}…`
+          : loading
+            ? "Enviando…"
+            : pendentes > 1
+              ? `Enviar ${pendentes} arquivos`
+              : pendentes === 1
+                ? "Enviar 1 arquivo"
+                : "Enviar"}
       </button>
 
       {itens.length > 0 && !loading && (

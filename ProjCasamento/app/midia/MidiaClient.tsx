@@ -108,7 +108,8 @@ export default function MidiaClient({ eventToken }: Props) {
               <p className={presentesLabelClass}>Enviar fotos e vídeos</p>
               <p className="mb-6 font-sans text-sm leading-relaxed text-invite-olive/70">
                 Tire pela câmera ou escolha da galeria. Vá montando a lista e envie tudo de uma vez.
-                Fotos até 100&nbsp;MB · vídeos até 1&nbsp;GB (VPS).
+                Vídeos grandes: mantenha a tela ligada até o fim (não roda de verdade em segundo
+                plano no celular).
               </p>
               <UploadFotos eventToken={eventToken} />
             </div>
@@ -123,7 +124,7 @@ export default function MidiaClient({ eventToken }: Props) {
             >
               <p className={presentesLabelClass}>Gravar mensagem</p>
               <p className="mb-6 font-sans text-sm leading-relaxed text-invite-olive/70">
-                Até 1 minuto. Deixe um carinho em voz para os noivos.
+                Grave o tempo que quiser (até 10&nbsp;min). Deixe um carinho em voz para os noivos.
               </p>
               <GravarAudio eventToken={eventToken} />
             </div>

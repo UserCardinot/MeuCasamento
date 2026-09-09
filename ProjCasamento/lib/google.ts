@@ -502,21 +502,44 @@ export async function getPresenteRegistrado(
 export async function uploadToDrive(
   file: Buffer,
   folderId: string,
-  fileName: string
+  fileName: string,
+  mimeType = "application/octet-stream"
+): Promise<string> {
+  return uploadToDriveStream(Readable.from(file), folderId, fileName, mimeType);
+}
+
+/**
+ * Upload por stream (não carrega o arquivo inteiro na RAM).
+ * Essencial para vídeos grandes no celular.
+ */
+export async function uploadToDriveStream(
+  body: Readable,
+  folderId: string,
+  fileName: string,
+  mimeType = "application/octet-stream"
 ): Promise<string> {
   const auth = await getAuthClient();
   const drive = google.drive({ version: "v3", auth });
 
-  const response = await drive.files.create({
-    requestBody: {
-      name: fileName,
-      parents: [folderId],
+  const response = await drive.files.create(
+    {
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+      },
+      media: {
+        mimeType,
+        body,
+      },
+      fields: "id",
+      supportsAllDrives: true,
     },
-    media: {
-      mimeType: "application/octet-stream",
-      body: Readable.from(file),
-    },
-  });
+    {
+      // axios / gaxios — arquivos grandes
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    } as { maxContentLength: number; maxBodyLength: number }
+  );
 
   return response.data.id || "";
 }

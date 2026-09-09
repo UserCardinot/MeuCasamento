@@ -7,11 +7,16 @@ import {
   presentesFieldClass,
   presentesLabelClass,
 } from "@/app/presentes/presentesTheme";
+import {
+  formatBytes,
+  releaseScreenWakeLock,
+  requestScreenWakeLock,
+  uploadRawFileWithProgress,
+} from "@/lib/upload-with-progress";
 
 type Props = { eventToken: string };
 
-const MAX_DURATION_MS = 60 * 1000;
-const MAX_SIZE_MB = 5;
+const MAX_DURATION_MS = 10 * 60 * 1000; // 10 min — só para não gravar sem querer por horas
 
 export default function GravarAudio({ eventToken }: Props) {
   const [recording, setRecording] = useState(false);
@@ -19,6 +24,8 @@ export default function GravarAudio({ eventToken }: Props) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [fase, setFase] = useState<"idle" | "uploading" | "saving">("idle");
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -96,30 +103,36 @@ export default function GravarAudio({ eventToken }: Props) {
       setErro("Grave um áudio primeiro.");
       return;
     }
-    if (audioBlob.size > MAX_SIZE_MB * 1024 * 1024) {
-      setErro(`Áudio muito grande. Máximo ${MAX_SIZE_MB}MB.`);
-      return;
-    }
 
     setErro("");
     setLoading(true);
     setSucesso(false);
+    setProgress(0);
+    setFase("uploading");
+
+    const wake = await requestScreenWakeLock();
 
     try {
-      const formData = new FormData();
-      formData.append("file", audioBlob, "audio.webm");
-      formData.append("tipo", "audio");
-      formData.append("eventToken", eventToken);
-      if (nome.trim()) formData.append("nome", nome.trim());
+      const formName = nome.trim() || "Anônimo";
+      const { ok, data } = await uploadRawFileWithProgress(
+        "/api/enviar-midia",
+        audioBlob,
+        {
+          "x-raw-upload": "1",
+          "x-event-token": eventToken,
+          "x-tipo": "audio",
+          "x-nome": encodeURIComponent(formName),
+          "x-filename": "audio.webm",
+          "x-mime": audioBlob.type || "audio/webm",
+          "Content-Type": audioBlob.type || "audio/webm",
+        },
+        (p) => {
+          setProgress(p.percent);
+          if (p.percent >= 100) setFase("saving");
+        }
+      );
 
-      const res = await fetch("/api/enviar-midia", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!ok) {
         setErro(data.erro || "Erro ao enviar. Tente novamente.");
         return;
       }
@@ -129,9 +142,14 @@ export default function GravarAudio({ eventToken }: Props) {
       setNome("");
       setDuration(0);
     } catch {
-      setErro("Erro de conexão. Tente novamente mais tarde.");
+      setErro(
+        "Envio interrompido. Mantenha esta tela aberta e a tela ligada até terminar."
+      );
     } finally {
+      await releaseScreenWakeLock(wake);
       setLoading(false);
+      setFase("idle");
+      setProgress(0);
     }
   }
 
@@ -168,7 +186,7 @@ export default function GravarAudio({ eventToken }: Props) {
                 <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
               </span>
               <span className="font-invite-caps text-sm tracking-[0.12em] text-invite-olive">
-                Gravando {tempo} / 1:00
+                Gravando {tempo} / 10:00
               </span>
             </div>
             <button
@@ -184,6 +202,7 @@ export default function GravarAudio({ eventToken }: Props) {
         {audioBlob && !recording && audioUrl && (
           <div className="space-y-4">
             <audio src={audioUrl} controls className="mx-auto w-full max-w-md" />
+            <p className="font-sans text-xs text-invite-olive/55">{formatBytes(audioBlob.size)}</p>
             <button
               type="button"
               onClick={() => {
@@ -197,6 +216,28 @@ export default function GravarAudio({ eventToken }: Props) {
           </div>
         )}
       </div>
+
+      {loading && (
+        <div>
+          <p className="mb-2 font-sans text-xs text-invite-olive/70">
+            {fase === "saving" ? "Salvando no álbum…" : `Enviando ${progress}%`}
+          </p>
+          <div
+            className="h-1.5 w-full overflow-hidden bg-invite-olive/15"
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className={`h-full bg-invite-olive transition-[width] duration-200 ${
+                fase === "saving" ? "animate-pulse" : ""
+              }`}
+              style={{ width: `${Math.max(progress, 2)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {erro && (
         <div className="border border-red-300/50 bg-red-50/80 px-4 py-3" role="alert">
@@ -212,7 +253,11 @@ export default function GravarAudio({ eventToken }: Props) {
       )}
 
       <button type="submit" disabled={loading || !audioBlob} className={presentesBtnPrimary}>
-        {loading ? "Enviando…" : "Enviar áudio"}
+        {loading
+          ? fase === "saving"
+            ? "Salvando…"
+            : `Enviando ${progress}%…`
+          : "Enviar áudio"}
       </button>
     </form>
   );

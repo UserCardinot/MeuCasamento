@@ -1,12 +1,12 @@
 /**
- * Rate limit simples por IP (em memória)
- * Limite: 30 requisições por minuto por IP
+ * Rate limit simples por IP (em memória).
+ * Padrão: 30 req/min. Passar `limit` para rotas de upload no dia do evento.
  */
 
-const limit = 30;
+const DEFAULT_LIMIT = 30;
 const windowMs = 60 * 1000; // 1 minuto
 
-const requests = new Map<string, { count: number; resetAt: number }>();
+const requests = new Map<string, { count: number; resetAt: number; limit: number }>();
 
 function cleanup() {
   const now = Date.now();
@@ -15,25 +15,31 @@ function cleanup() {
   }
 }
 
-export function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+export function checkRateLimit(
+  ip: string,
+  opts?: { limit?: number }
+): { allowed: boolean; remaining: number } {
   cleanup();
 
+  const limit = opts?.limit ?? DEFAULT_LIMIT;
   const now = Date.now();
   const record = requests.get(ip);
 
   if (!record) {
-    requests.set(ip, { count: 1, resetAt: now + windowMs });
+    requests.set(ip, { count: 1, resetAt: now + windowMs, limit });
     return { allowed: true, remaining: limit - 1 };
   }
 
   if (record.resetAt < now) {
-    requests.set(ip, { count: 1, resetAt: now + windowMs });
+    requests.set(ip, { count: 1, resetAt: now + windowMs, limit });
     return { allowed: true, remaining: limit - 1 };
   }
 
+  // Usa o maior teto visto nesta janela (ex.: mídia 300 vs outras 30)
+  record.limit = Math.max(record.limit, limit);
   record.count++;
-  const remaining = Math.max(0, limit - record.count);
-  const allowed = record.count <= limit;
+  const remaining = Math.max(0, record.limit - record.count);
+  const allowed = record.count <= record.limit;
 
   return { allowed, remaining };
 }

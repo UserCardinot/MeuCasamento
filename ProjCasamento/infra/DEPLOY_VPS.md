@@ -81,4 +81,4 @@ https://meucasamento.lumenemotion.com.br/midia?eventToken=SEU_EVENT_TOKEN
 
 ## Limite de upload
 
-Nginx: `client_max_body_size 1024m` — fotos até 100MB, vídeos até 1GB.
+Nginx: `client_max_body_size 0` — sem teto de upload na VPS (app também sem limite de tamanho).
