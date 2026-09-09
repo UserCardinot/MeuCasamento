@@ -6,8 +6,11 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolvePhotoUpload } from "@/lib/photo-moment";
 
 export const runtime = "nodejs";
-/** Uploads grandes na VPS — Vercel ainda corta ~4,5MB. */
-export const maxDuration = 900;
+/**
+ * Vercel Hobby: máx. 300s (valores maiores quebram o deploy).
+ * Na VPS (Docker) esse teto não se aplica da mesma forma.
+ */
+export const maxDuration = 300;
 
 /** Só freio na Vercel; na VPS não limitamos tamanho no app. */
 const VERCEL_SAFE_BYTES = 4.2 * 1024 * 1024;
