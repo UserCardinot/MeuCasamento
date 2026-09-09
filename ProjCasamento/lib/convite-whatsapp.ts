@@ -54,10 +54,11 @@ const E = {
 } as const;
 
 /**
- * Mensagem do WhatsApp — link da lista de presentes em linha própria (preview com logo L&B).
+ * Mensagem do WhatsApp — só texto (sem card/logo no preview do link).
  */
 export function buildConviteWhatsAppMessage(link: string, _nomeConvidado?: string): string {
-  const presentesLink = toPresentesLink(link);
+  // Caractere invisível após :// → WhatsApp costuma não montar preview do link
+  const presentesLink = toPresentesLink(link).replace("://", "://\u200B");
 
   return `Nosso casamento está chegando ${E.ring}
 
