@@ -54,11 +54,10 @@ const E = {
 } as const;
 
 /**
- * Mensagem do WhatsApp — só texto (sem card/logo no preview do link).
+ * Mensagem do WhatsApp — link sozinho entre linhas em branco (fica clicável).
  */
 export function buildConviteWhatsAppMessage(link: string, _nomeConvidado?: string): string {
-  // Caractere invisível após :// → WhatsApp costuma não montar preview do link
-  const presentesLink = toPresentesLink(link).replace("://", "://\u200B");
+  const presentesLink = toPresentesLink(link);
 
   return `Nosso casamento está chegando ${E.ring}
 
@@ -67,6 +66,7 @@ Agora é contagem regressiva para o nosso grande dia! Estamos vivendo cada momen
 E, para quem nos pergunta sobre presentes, deixamos uma listinha preparada com alguns itens que vão fazer parte do nosso novo lar e dessa nova fase juntos. ${E.house}
 
 Clique aqui para conferir ${E.pointDown}
+
 ${presentesLink}
 
 Mas o mais importante é ter vocês conosco nesse dia tão especial. A presença de cada um será um dos nossos maiores presentes! ${E.loveFace}
