@@ -58,10 +58,8 @@ const E = {
  */
 export function buildConviteWhatsAppMessage(link: string, _nomeConvidado?: string): string {
   const presentesLink = toPresentesLink(link);
-  const monograma = `${EVENTO.noivos.monograma[0]} & ${EVENTO.noivos.monograma[1]}`;
 
-  return `${monograma}
-Nosso casamento está chegando ${E.ring}
+  return `Nosso casamento está chegando ${E.ring}
 
 Agora é contagem regressiva para o nosso grande dia! Estamos vivendo cada momento com o coração cheio de alegria e expectativa para celebrar esse sonho ao lado de pessoas que tanto amamos ${E.redHeart}
 
