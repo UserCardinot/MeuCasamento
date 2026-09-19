@@ -157,10 +157,16 @@ export default function UploadFotos({ eventToken }: Props) {
     setErroGeral("");
     setEnviadosOk(0);
     let okCount = 0;
+    let finalizados = 0;
 
     const totalFila = pendentes.length;
     setFilaInfo({ atual: 0, total: totalFila });
-    let idxFila = 0;
+
+    // Fotos em paralelo; vídeos grandes pesam mais → menos concorrência
+    const temVideoGrande = pendentes.some(
+      (i) => i.kind === "video" || i.file.size >= 80 * 1024 * 1024
+    );
+    const CONCURRENCY = temVideoGrande ? 2 : 4;
 
     const wake = await requestScreenWakeLock();
     const onVisibility = () => {
@@ -172,10 +178,9 @@ export default function UploadFotos({ eventToken }: Props) {
     };
     document.addEventListener("visibilitychange", onVisibility);
 
-    try {
-    for (const item of pendentes) {
-      idxFila += 1;
-      setFilaInfo({ atual: idxFila, total: totalFila });
+    const nomeEnvio = nome.trim();
+
+    async function enviarUm(item: QueueItem) {
       setItens((prev) =>
         prev.map((i) =>
           i.id === item.id
@@ -197,7 +202,6 @@ export default function UploadFotos({ eventToken }: Props) {
 
         if (item.kind === "foto") {
           captureAt = await readCaptureHint(item.file);
-          // Compacta só na Vercel (limite ~4,5MB). Na VPS envia original.
           if (isOnVercelHost()) {
             try {
               fileToSend = await compressImageForUpload(item.file);
@@ -216,7 +220,7 @@ export default function UploadFotos({ eventToken }: Props) {
                     : i
                 )
               );
-              continue;
+              return;
             }
           }
         }
@@ -258,7 +262,6 @@ export default function UploadFotos({ eventToken }: Props) {
           );
         };
 
-        // Vídeos (e arquivos grandes): corpo cru → menos RAM e progresso mais estável
         const useRaw =
           item.kind === "video" || fileToSend.size >= 40 * 1024 * 1024;
 
@@ -273,7 +276,7 @@ export default function UploadFotos({ eventToken }: Props) {
               "x-raw-upload": "1",
               "x-event-token": eventToken,
               "x-tipo": item.kind,
-              "x-nome": encodeURIComponent(nome.trim() || "Anônimo"),
+              "x-nome": encodeURIComponent(nomeEnvio || "Anônimo"),
               "x-filename": encodeURIComponent(fileToSend.name || "video.mp4"),
               "x-mime": fileToSend.type || "video/mp4",
               "Content-Type": fileToSend.type || "application/octet-stream",
@@ -287,7 +290,7 @@ export default function UploadFotos({ eventToken }: Props) {
           formData.append("file", fileToSend);
           formData.append("tipo", item.kind);
           formData.append("eventToken", eventToken);
-          if (nome.trim()) formData.append("nome", nome.trim());
+          if (nomeEnvio) formData.append("nome", nomeEnvio);
           if (captureAt) formData.append("captureAt", captureAt);
 
           const result = await uploadWithProgress("/api/enviar-midia", formData, onProg);
@@ -308,7 +311,7 @@ export default function UploadFotos({ eventToken }: Props) {
                 : i
             )
           );
-          continue;
+          return;
         }
 
         okCount += 1;
@@ -332,8 +335,24 @@ export default function UploadFotos({ eventToken }: Props) {
               : i
           )
         );
+      } finally {
+        finalizados += 1;
+        setFilaInfo({ atual: finalizados, total: totalFila });
       }
     }
+
+    try {
+      let next = 0;
+      const workers = Array.from(
+        { length: Math.min(CONCURRENCY, pendentes.length) },
+        async () => {
+          while (next < pendentes.length) {
+            const item = pendentes[next++];
+            await enviarUm(item);
+          }
+        }
+      );
+      await Promise.all(workers);
     } finally {
       document.removeEventListener("visibilitychange", onVisibility);
       await releaseScreenWakeLock(wake);
