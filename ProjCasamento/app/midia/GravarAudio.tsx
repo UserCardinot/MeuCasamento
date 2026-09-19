@@ -159,40 +159,56 @@ export default function GravarAudio({ eventToken }: Props) {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label htmlFor="audio-nome" className={presentesLabelClass}>
-          Seu nome (opcional)
+          Seu nome{" "}
+          <span className="font-normal normal-case tracking-normal text-invite-olive/45">(opcional)</span>
         </label>
         <input
           id="audio-nome"
           type="text"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
-          placeholder="Ex: João"
+          placeholder="Ex.: João"
           className={presentesFieldClass}
         />
       </div>
 
-      <div className="border border-invite-olive/25 bg-white/50 px-5 py-8 text-center sm:px-8 sm:py-10">
+      <div className="flex flex-col items-center border border-invite-olive/25 bg-white/50 px-4 py-7">
         {!recording && !audioBlob && (
-          <button type="button" onClick={startRecording} className={`${presentesBtnPrimary} max-w-xs`}>
-            Começar gravação
+          <button
+            type="button"
+            onClick={startRecording}
+            className="group flex flex-col items-center gap-3"
+            aria-label="Começar gravação"
+          >
+            <span
+              className="flex h-20 w-20 items-center justify-center rounded-full bg-invite-olive text-white transition-transform duration-200 group-hover:scale-105 group-active:scale-95 sm:h-24 sm:w-24"
+              style={{ animation: "midiaRecPulse 2.4s ease-out infinite" }}
+            >
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
+              </svg>
+            </span>
+            <span className="font-sans text-sm font-medium text-invite-olive">Toque para gravar</span>
           </button>
         )}
 
         {recording && (
-          <div className="flex flex-col items-center gap-5">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative flex h-20 w-20 items-center justify-center sm:h-24 sm:w-24">
+              <span className="absolute inset-0 animate-ping rounded-full bg-red-500/25" />
+              <span className="relative flex h-full w-full items-center justify-center rounded-full bg-red-600 text-white">
+                <span className="h-6 w-6 rounded-sm bg-white" />
               </span>
-              <span className="font-invite-caps text-sm tracking-[0.12em] text-invite-olive">
-                Gravando {tempo} / 10:00
-              </span>
+            </div>
+            <div className="text-center">
+              <p className="font-sans text-sm font-medium text-invite-olive">Gravando</p>
+              <p className="mt-1 font-sans text-2xl tabular-nums text-invite-olive">{tempo}</p>
+              <p className="mt-0.5 font-sans text-xs text-invite-olive/50">máx. 10:00</p>
             </div>
             <button
               type="button"
               onClick={stopRecording}
-              className="font-invite-caps border-2 border-red-600/80 bg-red-600 px-8 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-white transition-transform hover:scale-[1.01]"
+              className="border border-red-600/80 bg-red-600 px-6 py-2.5 font-sans text-sm font-medium text-white"
             >
               Parar
             </button>
@@ -200,16 +216,18 @@ export default function GravarAudio({ eventToken }: Props) {
         )}
 
         {audioBlob && !recording && audioUrl && (
-          <div className="space-y-4">
-            <audio src={audioUrl} controls className="mx-auto w-full max-w-md" />
-            <p className="font-sans text-xs text-invite-olive/55">{formatBytes(audioBlob.size)}</p>
+          <div className="w-full max-w-md space-y-3 text-center">
+            <audio src={audioUrl} controls className="mx-auto w-full" />
+            <p className="font-sans text-xs text-invite-olive/55">
+              {tempo} · {formatBytes(audioBlob.size)}
+            </p>
             <button
               type="button"
               onClick={() => {
                 setAudioBlob(null);
                 setDuration(0);
               }}
-              className={`${presentesBtnOutline} max-w-xs`}
+              className={presentesBtnOutline}
             >
               Gravar de novo
             </button>
@@ -219,7 +237,7 @@ export default function GravarAudio({ eventToken }: Props) {
 
       {loading && (
         <div>
-          <p className="mb-2 font-sans text-xs text-invite-olive/70">
+          <p className="mb-1.5 font-sans text-xs text-invite-olive/65">
             {fase === "saving" ? "Salvando no álbum…" : `Enviando ${progress}%`}
           </p>
           <div
@@ -240,15 +258,13 @@ export default function GravarAudio({ eventToken }: Props) {
       )}
 
       {erro && (
-        <div className="border border-red-300/50 bg-red-50/80 px-4 py-3" role="alert">
+        <div className="bg-red-50/90 px-3.5 py-3" role="alert">
           <p className="font-sans text-sm text-red-800">{erro}</p>
         </div>
       )}
       {sucesso && (
-        <div className="border border-invite-olive/30 bg-invite-olive/10 px-4 py-3" role="status">
-          <p className="font-invite-caps text-[0.7rem] font-medium uppercase tracking-[0.14em] text-invite-olive">
-            Áudio enviado com sucesso
-          </p>
+        <div className="bg-invite-olive/10 px-3.5 py-3" role="status">
+          <p className="font-sans text-sm font-medium text-invite-olive">Áudio enviado</p>
         </div>
       )}
 

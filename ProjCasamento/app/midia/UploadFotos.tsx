@@ -10,7 +10,6 @@ import {
 import { compressImageForUpload } from "@/lib/compress-image";
 import { readCaptureHint } from "@/lib/capture-hint";
 import {
-  formatBytes,
   releaseScreenWakeLock,
   requestScreenWakeLock,
   uploadRawFileWithProgress,
@@ -366,42 +365,55 @@ export default function UploadFotos({ eventToken }: Props) {
   }
 
   const pendentes = itens.filter((i) => i.status === "pending" || i.status === "error").length;
-  const btnClass =
-    "font-invite-caps flex flex-1 flex-col items-center justify-center gap-1.5 border border-invite-olive/35 bg-white/70 px-3 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-invite-olive transition-colors hover:border-invite-olive/55 hover:bg-white/90 active:scale-[0.99] sm:text-[0.7rem]";
+
+  const actionBtn =
+    "flex flex-col items-center justify-center gap-1.5 border border-invite-olive/35 bg-white/70 px-2 py-3.5 text-center text-invite-olive transition-colors hover:border-invite-olive/55 hover:bg-white active:bg-invite-olive/[0.05]";
 
   return (
     <form onSubmit={enviarFila} className="space-y-5">
       <div>
         <label htmlFor="midia-nome" className={presentesLabelClass}>
-          Seu nome (opcional)
+          Seu nome <span className="font-normal normal-case tracking-normal text-invite-olive/45">(opcional)</span>
         </label>
         <input
           id="midia-nome"
           type="text"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
-          placeholder="Ex: Maria"
+          placeholder="Ex.: Maria"
           className={presentesFieldClass}
           autoComplete="name"
         />
       </div>
 
       <div>
-        <p className={presentesLabelClass}>Adicionar à lista</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button type="button" className={btnClass} onClick={() => cameraFotoRef.current?.click()}>
-            Tirar foto
+        <p className={`${presentesLabelClass}`}>Adicionar</p>
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" className={actionBtn} onClick={() => cameraFotoRef.current?.click()}>
+            <svg className="h-6 w-6 text-invite-olive/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <path d="M4 8.5h2.2l1.3-2h9l1.3 2H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5Z" />
+              <circle cx="12" cy="13.5" r="3.2" />
+            </svg>
+            <span className="font-sans text-xs font-medium sm:text-sm">Tirar foto</span>
           </button>
-          <button type="button" className={btnClass} onClick={() => cameraVideoRef.current?.click()}>
-            Gravar vídeo
+          <button type="button" className={actionBtn} onClick={() => cameraVideoRef.current?.click()}>
+            <svg className="h-6 w-6 text-invite-olive/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <rect x="3" y="6.5" width="12" height="11" rx="1.5" />
+              <path d="M15 10.5 20.5 7v10L15 13.5" />
+            </svg>
+            <span className="font-sans text-xs font-medium sm:text-sm">Gravar vídeo</span>
           </button>
-          <button type="button" className={btnClass} onClick={() => galeriaRef.current?.click()}>
-            Da galeria
+          <button type="button" className={actionBtn} onClick={() => galeriaRef.current?.click()}>
+            <svg className="h-6 w-6 text-invite-olive/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <rect x="3.5" y="4.5" width="17" height="15" rx="1.5" />
+              <path d="m3.5 15.5 4.5-4 3.5 3.5 3-2.5 6 5" />
+              <circle cx="8.5" cy="9" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+            <span className="font-sans text-xs font-medium sm:text-sm">Do celular</span>
           </button>
         </div>
         <p className="mt-2 font-sans text-xs text-invite-olive/55">
-          Sem limite de tamanho na VPS. Em vídeos grandes, mantenha esta tela aberta e a tela
-          ligada até terminar (o celular cancela envio em segundo plano).
+          Em vídeos longos, deixe esta tela aberta até terminar.
         </p>
 
         <input
@@ -433,14 +445,12 @@ export default function UploadFotos({ eventToken }: Props) {
       {itens.length > 0 && (
         <div>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className={`${presentesLabelClass} !mb-0`}>
-              Lista ({itens.length}/{MAX_ITENS})
-            </p>
+            <p className={`${presentesLabelClass} !mb-0`}>Lista ({itens.length})</p>
             {itens.some((i) => i.status === "done") && (
               <button
                 type="button"
                 onClick={limparConcluidos}
-                className="font-invite-caps text-[0.62rem] uppercase tracking-[0.14em] text-invite-olive/60 hover:text-invite-olive"
+                className="font-sans text-xs text-invite-olive/60 hover:text-invite-olive"
               >
                 Limpar enviados
               </button>
@@ -448,136 +458,134 @@ export default function UploadFotos({ eventToken }: Props) {
           </div>
 
           <ul className="space-y-2">
-            {itens.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 border border-invite-olive/20 bg-white/60 p-2.5"
-              >
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-invite-cream sm:h-20 sm:w-20">
-                  {item.kind === "video" ? (
-                    <video
-                      src={item.previewUrl}
-                      className="h-full w-full object-cover"
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
-                  )}
-                  <span className="absolute bottom-0 left-0 bg-invite-olive/90 px-1 py-0.5 font-invite-caps text-[0.55rem] uppercase tracking-wider text-white">
-                    {item.kind === "video" ? "Vídeo" : "Foto"}
-                  </span>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-sans text-sm text-invite-olive">{item.file.name}</p>
-                  <p className="mt-0.5 font-sans text-xs text-invite-olive/55">
-                    {(item.file.size / (1024 * 1024)).toFixed(1)} MB
-                    {item.status === "pending" && " · na fila"}
-                    {item.status === "preparing" && " · preparando…"}
-                    {item.status === "uploading" &&
-                      ` · enviando ${item.progress ?? 0}%` +
-                        (item.loadedBytes != null && item.totalBytes
-                          ? ` (${formatBytes(item.loadedBytes)} / ${formatBytes(item.totalBytes)})`
-                          : "")}
-                    {item.status === "saving" && " · salvando no álbum…"}
-                    {item.status === "done" && " · enviado"}
-                    {item.status === "error" && ` · ${item.erro || "erro"}`}
-                  </p>
-                  {(item.status === "preparing" ||
-                    item.status === "uploading" ||
-                    item.status === "saving") && (
-                    <div
-                      className="mt-2 h-1.5 w-full overflow-hidden bg-invite-olive/15"
-                      role="progressbar"
-                      aria-valuenow={item.status === "preparing" ? 0 : item.progress ?? 0}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label="Progresso do envio"
-                    >
-                      <div
-                        className={`h-full bg-invite-olive transition-[width] duration-200 ease-out ${
-                          item.status === "saving" ? "animate-pulse" : ""
-                        }`}
-                        style={{
-                          width:
-                            item.status === "preparing"
-                              ? "8%"
-                              : `${Math.max(item.progress ?? 0, 2)}%`,
-                        }}
+            {itens.map((item) => {
+              const emEnvio =
+                item.status === "preparing" ||
+                item.status === "uploading" ||
+                item.status === "saving";
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-center gap-3 border border-invite-olive/20 bg-white/60 p-2.5"
+                >
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-invite-cream sm:h-16 sm:w-16">
+                    {item.kind === "video" ? (
+                      <video
+                        src={item.previewUrl}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
                       />
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
+                    )}
+                  </div>
 
-                {item.status !== "uploading" &&
-                  item.status !== "preparing" &&
-                  item.status !== "saving" && (
-                  <button
-                    type="button"
-                    onClick={() => removerItem(item.id)}
-                    className="shrink-0 font-invite-caps text-[0.6rem] uppercase tracking-[0.12em] text-invite-olive/50 hover:text-invite-olive"
-                    aria-label="Remover"
-                  >
-                    Remover
-                  </button>
-                )}
-              </li>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-sans text-sm text-invite-olive">
+                      {item.kind === "video" ? "Vídeo" : "Foto"} ·{" "}
+                      {(item.file.size / (1024 * 1024)).toFixed(1)} MB
+                    </p>
+                    <p className="mt-0.5 font-sans text-xs text-invite-olive/55">
+                      {item.status === "pending" && "Na fila"}
+                      {item.status === "preparing" && "Preparando…"}
+                      {item.status === "uploading" && `Enviando ${item.progress ?? 0}%`}
+                      {item.status === "saving" && "Salvando…"}
+                      {item.status === "done" && "Enviado"}
+                      {item.status === "error" && (item.erro || "Erro")}
+                    </p>
+                    {emEnvio && (
+                      <div
+                        className="mt-1.5 h-1.5 w-full overflow-hidden bg-invite-olive/15"
+                        role="progressbar"
+                        aria-valuenow={item.status === "preparing" ? 0 : item.progress ?? 0}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Progresso do envio"
+                      >
+                        <div
+                          className={`h-full bg-invite-olive transition-[width] duration-200 ease-out ${
+                            item.status === "saving" ? "animate-pulse" : ""
+                          }`}
+                          style={{
+                            width:
+                              item.status === "preparing"
+                                ? "8%"
+                                : `${Math.max(item.progress ?? 0, 2)}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {!emEnvio && (
+                    <button
+                      type="button"
+                      onClick={() => removerItem(item.id)}
+                      className="shrink-0 font-sans text-xs text-invite-olive/50 hover:text-invite-olive"
+                      aria-label="Remover da lista"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
 
       {loading && (
-        <div className="border border-amber-700/25 bg-amber-50/90 px-4 py-3" role="status">
+        <div className="bg-amber-50/90 px-3.5 py-3" role="status">
           <p className="font-sans text-sm text-amber-950/90">
-            Envio em andamento
-            {filaInfo ? ` (${filaInfo.atual}/${filaInfo.total})` : ""}. Deixe esta página aberta
-            e a tela ligada — se bloquear ou trocar de app, o navegador costuma cancelar.
+            Enviando
+            {filaInfo ? ` ${filaInfo.atual} de ${filaInfo.total}` : ""}… Deixe esta página aberta.
           </p>
         </div>
       )}
 
       {erroGeral && (
-        <div className="border border-red-300/50 bg-red-50/80 px-4 py-3" role="alert">
+        <div className="bg-red-50/90 px-3.5 py-3" role="alert">
           <p className="font-sans text-sm text-red-800">{erroGeral}</p>
         </div>
       )}
 
       {enviadosOk > 0 && !loading && (
-        <div className="border border-invite-olive/30 bg-invite-olive/10 px-4 py-3" role="status">
-          <p className="font-invite-caps text-[0.7rem] font-medium uppercase tracking-[0.14em] text-invite-olive">
-            {enviadosOk === 1 ? "1 arquivo enviado" : `${enviadosOk} arquivos enviados`}
+        <div className="bg-invite-olive/10 px-3.5 py-3" role="status">
+          <p className="font-sans text-sm font-medium text-invite-olive">
+            {enviadosOk === 1 ? "1 arquivo no álbum" : `${enviadosOk} arquivos no álbum`}
           </p>
         </div>
       )}
 
-      <button type="submit" disabled={loading || pendentes === 0} className={presentesBtnPrimary}>
-        {loading && filaInfo
-          ? `Enviando ${filaInfo.atual}/${filaInfo.total}…`
-          : loading
-            ? "Enviando…"
-            : pendentes > 1
-              ? `Enviar ${pendentes} arquivos`
-              : pendentes === 1
-                ? "Enviar 1 arquivo"
-                : "Enviar"}
-      </button>
-
-      {itens.length > 0 && !loading && (
-        <button
-          type="button"
-          onClick={() => {
-            itens.forEach((i) => URL.revokeObjectURL(i.previewUrl));
-            setItens([]);
-            setEnviadosOk(0);
-          }}
-          className={presentesBtnOutline}
-        >
-          Limpar lista
+      <div className="space-y-2 pt-0.5">
+        <button type="submit" disabled={loading || pendentes === 0} className={presentesBtnPrimary}>
+          {loading && filaInfo
+            ? `Enviando ${filaInfo.atual}/${filaInfo.total}…`
+            : loading
+              ? "Enviando…"
+              : pendentes > 1
+                ? `Enviar ${pendentes} arquivos`
+                : pendentes === 1
+                  ? "Enviar 1 arquivo"
+                  : "Enviar"}
         </button>
-      )}
+
+        {itens.length > 0 && !loading && (
+          <button
+            type="button"
+            onClick={() => {
+              itens.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+              setItens([]);
+              setEnviadosOk(0);
+            }}
+            className={presentesBtnOutline}
+          >
+            Limpar lista
+          </button>
+        )}
+      </div>
     </form>
   );
 }

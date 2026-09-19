@@ -37,7 +37,7 @@ export default async function MidiaPage({ searchParams }: Props) {
   }
 
   return (
-    <InvitePageShell className="flex min-h-screen flex-col items-center py-10 sm:py-14 md:py-16 lg:py-20">
+    <InvitePageShell className="midia-atmosphere flex min-h-screen flex-col items-center py-10 sm:py-14 md:py-16 lg:py-20">
       <MidiaClient eventToken={eventToken} />
     </InvitePageShell>
   );
