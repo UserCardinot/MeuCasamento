@@ -11,7 +11,7 @@ import readline from "readline";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/drive",
 ];
 
 async function main() {

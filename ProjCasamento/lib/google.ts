@@ -1,11 +1,10 @@
 /**
- * Integração com Google Sheets e Google Drive.
+ * Preferência:
+ * - Sheets: GOOGLE_SERVICE_ACCOUNT_JSON (não expira)
+ * - Drive (upload): OAuth do usuário (SA não tem cota em Drive pessoal)
  *
- * Preferência: GOOGLE_SERVICE_ACCOUNT_JSON (JSON da service account completo) —
- * não depende de refresh token de usuário; ideal pra produção (Vercel, meses de uso).
- * Alternativa: GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET + GOOGLE_REFRESH_TOKEN (OAuth).
- *
- * Com service account: compartilhe a planilha e as pastas do Drive com o e-mail ...@....iam.gserviceaccount.com (Editor ou conforme necessário).
+ * Com service account: compartilhe a planilha com ...@....iam.gserviceaccount.com (Editor).
+ * Pastas do Drive: use a mesma conta do OAuth (refresh token).
  */
 
 import { Readable } from "stream";
@@ -15,45 +14,50 @@ import type { OAuth2Client } from "google-auth-library";
 
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/drive",
 ];
 
 let jwtClient: JWT | null = null;
 let oauthSingleton: OAuth2Client | null = null;
 
-async function getAuthClient(): Promise<JWT | OAuth2Client> {
-  const saRaw =
+function readServiceAccountRaw(): string {
+  return (
     process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ||
     (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64?.trim()
       ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64.trim(), "base64").toString("utf8")
-      : "");
+      : "")
+  );
+}
 
+async function getServiceAccountAuth(): Promise<JWT | null> {
+  const saRaw = readServiceAccountRaw();
   const saUsable =
     saRaw &&
     !saRaw.includes("[SENSITIVE]") &&
     saRaw.trim().startsWith("{");
 
-  if (saUsable) {
-    let creds: { client_email?: string; private_key?: string };
-    try {
-      creds = JSON.parse(saRaw) as { client_email?: string; private_key?: string };
-    } catch {
-      // Placeholder / JSON inválido → cai no OAuth abaixo
-      creds = {};
-    }
-    if (creds.client_email && creds.private_key) {
-      if (!jwtClient) {
-        jwtClient = new google.auth.JWT({
-          email: creds.client_email,
-          key: creds.private_key,
-          scopes: GOOGLE_SCOPES,
-        });
-        await jwtClient.authorize();
-      }
-      return jwtClient;
-    }
-  }
+  if (!saUsable) return null;
 
+  let creds: { client_email?: string; private_key?: string };
+  try {
+    creds = JSON.parse(saRaw) as { client_email?: string; private_key?: string };
+  } catch {
+    return null;
+  }
+  if (!creds.client_email || !creds.private_key) return null;
+
+  if (!jwtClient) {
+    jwtClient = new google.auth.JWT({
+      email: creds.client_email,
+      key: creds.private_key,
+      scopes: GOOGLE_SCOPES,
+    });
+    await jwtClient.authorize();
+  }
+  return jwtClient;
+}
+
+async function getOAuthAuth(): Promise<OAuth2Client | null> {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
@@ -66,11 +70,7 @@ async function getAuthClient(): Promise<JWT | OAuth2Client> {
     !clientSecret.includes("[SENSITIVE]") &&
     !refreshToken.includes("[SENSITIVE]");
 
-  if (!oauthUsable) {
-    throw new Error(
-      "Google: defina GOOGLE_SERVICE_ACCOUNT_JSON (recomendado) ou GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN válidos"
-    );
-  }
+  if (!oauthUsable) return null;
 
   if (!oauthSingleton) {
     oauthSingleton = new google.auth.OAuth2(
@@ -81,6 +81,28 @@ async function getAuthClient(): Promise<JWT | OAuth2Client> {
     oauthSingleton.setCredentials({ refresh_token: refreshToken });
   }
   return oauthSingleton;
+}
+
+/**
+ * Sheets: service account primeiro (não expira).
+ * Drive: OAuth do usuário primeiro — SA não tem cota em Drive pessoal.
+ */
+async function getAuthClient(kind: "sheets" | "drive" = "sheets"): Promise<JWT | OAuth2Client> {
+  if (kind === "drive") {
+    const oauth = await getOAuthAuth();
+    if (oauth) return oauth;
+    const sa = await getServiceAccountAuth();
+    if (sa) return sa;
+  } else {
+    const sa = await getServiceAccountAuth();
+    if (sa) return sa;
+    const oauth = await getOAuthAuth();
+    if (oauth) return oauth;
+  }
+
+  throw new Error(
+    "Google: defina GOOGLE_SERVICE_ACCOUNT_JSON (Sheets) e/ou GOOGLE_CLIENT_ID + SECRET + REFRESH_TOKEN (Drive)"
+  );
 }
 
 /**
@@ -107,7 +129,7 @@ export async function appendToSheet(
   range: string,
   values: unknown[][]
 ): Promise<void> {
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.append({
     spreadsheetId: resolveSheetId(sheetId),
@@ -124,7 +146,7 @@ export async function readFromSheet(
   sheetId: string,
   range: string
 ): Promise<unknown[][]> {
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: resolveSheetId(sheetId),
@@ -140,7 +162,7 @@ export async function getSheetIdByTitle(
   spreadsheetId: string,
   title: string
 ): Promise<number | null> {
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   const meta = await sheets.spreadsheets.get({ spreadsheetId: resolveSheetId(spreadsheetId) });
   const found = meta.data.sheets?.find((s) => s.properties?.title === title);
@@ -172,7 +194,7 @@ export async function deleteConvidadoRow(
   // Linha 1 da planilha (índice 0) = cabeçalho; primeira linha de dados A2 = índice 1
   const startIndex = idx + 1;
 
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId: resolveSheetId(spreadsheetId),
@@ -226,7 +248,7 @@ export async function updateConvidadoRow(
   const sheetRow = idx + 2;
   const range = `${sheetTitle}!A${sheetRow}:F${sheetRow}`;
 
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.update({
     spreadsheetId: resolveSheetId(spreadsheetId),
@@ -273,7 +295,7 @@ export async function updateCatalogoPresenteRow(
   const sheetRow = idx + 2;
   const range = `${sheetTitle}!A${sheetRow}:E${sheetRow}`;
 
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.values.update({
     spreadsheetId: resolveSheetId(spreadsheetId),
@@ -301,7 +323,7 @@ export async function deleteCatalogoPresenteRow(
 
   const startIndex = idx + 1;
 
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId: resolveSheetId(spreadsheetId),
@@ -393,7 +415,7 @@ export async function upsertPresencaRow(
     data,
   ];
 
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("sheets");
   const sheets = google.sheets({ version: "v4", auth });
 
   if (idx === -1) {
@@ -518,7 +540,7 @@ export async function uploadToDriveStream(
   fileName: string,
   mimeType = "application/octet-stream"
 ): Promise<string> {
-  const auth = await getAuthClient();
+  const auth = await getAuthClient("drive");
   const drive = google.drive({ version: "v3", auth });
 
   const response = await drive.files.create(
