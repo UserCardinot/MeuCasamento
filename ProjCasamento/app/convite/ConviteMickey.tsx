@@ -31,9 +31,16 @@ const txt = {
 
 /** Estilo "cartoon": contorno preto e sombra sólida que afunda ao clicar. */
 const botao =
-  "flex w-full items-center justify-center gap-[max(0.4rem,1.2cqmin)] rounded-2xl border-[3px] border-black px-[max(0.6rem,1.8cqmin)] py-[max(0.6rem,1.9cqmin)] font-nomes-noivos font-bold leading-tight shadow-[0_5px_0_#111] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_7px_0_#111] active:translate-y-[5px] active:shadow-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#FFC400] portrait:py-[2.6cqw] text-[max(0.85rem,2.9cqmin)] portrait:text-[max(0.95rem,4.2cqw)]";
+  "flex w-full items-center justify-center whitespace-nowrap rounded-2xl border-[3px] border-black px-[max(0.5rem,1.6cqmin)] font-nomes-noivos font-bold leading-tight shadow-[0_5px_0_#111] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_7px_0_#111] active:translate-y-[5px] active:shadow-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#FFC400]";
 
-const icone = "h-[1.25em] w-[1.25em] shrink-0";
+const botaoPrincipal =
+  "gap-[max(0.5rem,1.4cqmin)] py-[max(0.7rem,2.2cqmin)] text-[max(1rem,3.6cqmin)] portrait:py-[3cqw] portrait:text-[max(1.05rem,5cqw)]";
+
+/** Ícone em cima do texto, para caberem três lado a lado. */
+const botaoSecundario =
+  "flex-col gap-[max(0.2rem,0.6cqmin)] py-[max(0.5rem,1.6cqmin)] text-[max(0.8rem,2.6cqmin)] portrait:py-[2.4cqw] portrait:text-[max(0.85rem,3.8cqw)]";
+
+const icone = "h-[1.3em] w-[1.3em] shrink-0";
 
 function IconeCheck() {
   return (
@@ -215,24 +222,33 @@ export default function ConviteMickey({
 
           <nav
             aria-label="Ações do convite"
-            className="mt-[1.2cqmin] grid w-full max-w-[min(100%,62cqmin)] grid-cols-2 gap-x-[1.8cqmin] gap-y-[2.2cqmin] pb-[5px] portrait:max-w-full portrait:gap-x-[3cqw] portrait:gap-y-[3.4cqw]"
+            className={`mt-[1.2cqmin] grid w-full max-w-[min(100%,74cqmin)] gap-x-[1.6cqmin] gap-y-[2.2cqmin] pb-[5px] portrait:max-w-full portrait:gap-x-[2.6cqw] portrait:gap-y-[3.4cqw] ${evento.localMapUrl ? "grid-cols-3" : "grid-cols-2"}`}
           >
-            <Botao href={`/confirmacao?token=${t}`} icone={<IconeCheck />} className={confirmar.cls}>
+            <Botao
+              href={`/confirmacao?token=${t}`}
+              icone={<IconeCheck />}
+              className={`${botaoPrincipal} ${confirmar.cls} ${evento.localMapUrl ? "col-span-3" : "col-span-2"}`}
+            >
               {confirmar.rotulo}
             </Botao>
-            <Botao href={`/presentes?token=${t}`} icone={<IconePresente />} className="bg-[#FFC400] text-black">
+            <Botao
+              href={`/presentes?token=${t}`}
+              icone={<IconePresente />}
+              className={`${botaoSecundario} bg-[#FFC400] text-black`}
+            >
               Presentes
             </Botao>
             {evento.localMapUrl ? (
-              <Botao href={evento.localMapUrl} externo icone={<IconePin />} className="bg-black text-white">
+              <Botao
+                href={evento.localMapUrl}
+                externo
+                icone={<IconePin />}
+                className={`${botaoSecundario} bg-black text-white`}
+              >
                 Como chegar
               </Botao>
             ) : null}
-            <Botao
-              href={`/recados?token=${t}`}
-              icone={<IconeRecado />}
-              className={`bg-white text-invite-olive ${evento.localMapUrl ? "" : "col-span-2"}`}
-            >
+            <Botao href={`/recados?token=${t}`} icone={<IconeRecado />} className={`${botaoSecundario} bg-white text-invite-olive`}>
               Recados
             </Botao>
           </nav>
