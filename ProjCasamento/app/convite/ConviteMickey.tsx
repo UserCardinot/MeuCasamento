@@ -127,6 +127,7 @@ export default function ConviteMickey({
         </div>
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-[2cqmin] px-[4cqw] py-[3cqh] text-center portrait:gap-[2.4cqw]">
+          <SimboloMickey className="absolute right-[2.5cqmin] top-[2.5cqmin] h-auto w-[max(2.5rem,9cqmin)] portrait:w-[12cqw]" />
           <p className={`font-invite-caps font-medium uppercase tracking-[0.14em] text-black ${txt.pequeno}`}>
             {primeiroNome}, você está convidado(a)
           </p>
