@@ -29,8 +29,48 @@ const txt = {
   nome: "text-[max(2.4rem,13cqmin)] portrait:text-[max(2.8rem,15cqw)]",
 } as const;
 
+/** Estilo "cartoon": contorno preto e sombra sólida que afunda ao clicar. */
 const botao =
-  "inline-flex items-center justify-center rounded-full px-[max(0.8rem,2.6cqmin)] py-[max(0.4rem,1.4cqmin)] font-invite-caps font-semibold uppercase tracking-[0.08em] shadow-md transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black portrait:px-[4cqw] portrait:py-[2cqw]";
+  "flex w-full items-center justify-center gap-[max(0.4rem,1.2cqmin)] rounded-2xl border-[3px] border-black px-[max(0.6rem,1.8cqmin)] py-[max(0.6rem,1.9cqmin)] font-nomes-noivos font-bold leading-tight shadow-[0_5px_0_#111] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_7px_0_#111] active:translate-y-[5px] active:shadow-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#FFC400] portrait:py-[2.6cqw] text-[max(0.85rem,2.9cqmin)] portrait:text-[max(0.95rem,4.2cqw)]";
+
+const icone = "h-[1.25em] w-[1.25em] shrink-0";
+
+function IconeCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={icone} aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.18" />
+      <path d="M7 12.5l3.2 3.2L17 9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconePresente() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={icone} aria-hidden>
+      <rect x="3.5" y="9" width="17" height="11.5" rx="1.8" stroke="currentColor" strokeWidth="2.2" />
+      <path d="M2.5 9h19M12 9v11.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M12 9c-1.2-3.4-5.2-4.4-5.2-1.6C6.8 9 12 9 12 9zm0 0c1.2-3.4 5.2-4.4 5.2-1.6C17.2 9 12 9 12 9z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconePin() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={icone} aria-hidden>
+      <path d="M12 21.5s7-5.2 7-11.5a7 7 0 10-14 0c0 6.3 7 11.5 7 11.5z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+      <circle cx="12" cy="10" r="2.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconeRecado() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={icone} aria-hidden>
+      <path d="M4 5.5h16a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5H10l-4.5 3.5V17.5H4A1.5 1.5 0 012.5 16V7A1.5 1.5 0 014 5.5z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M7.5 10h9M7.5 13.5h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 const pontinhosBrancos = {
   backgroundImage: "radial-gradient(circle at 14px 14px, rgba(255,255,255,0.22) 5px, transparent 6px)",
@@ -47,25 +87,33 @@ function textoDias(dias: number | null): string | null {
 function Botao({
   href,
   externo,
-  className = "bg-invite-olive text-white",
+  icone,
+  className,
   children,
 }: {
   href: string;
   externo?: boolean;
-  className?: string;
+  icone: ReactNode;
+  className: string;
   children: ReactNode;
 }) {
-  const cls = `${botao} ${txt.pequeno} ${className}`;
+  const cls = `${botao} ${className}`;
+  const conteudo = (
+    <>
+      {icone}
+      <span>{children}</span>
+    </>
+  );
   if (externo) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
-        {children}
+        {conteudo}
       </a>
     );
   }
   return (
     <Link href={href} className={cls}>
-      {children}
+      {conteudo}
     </Link>
   );
 }
@@ -86,7 +134,7 @@ export default function ConviteMickey({
   const temCapa = existsSync(path.join(process.cwd(), "public", "eventos", evento.slug, "capa.png"));
 
   const confirmar = presencaConfirmada
-    ? { rotulo: "Presença confirmada ✓", cls: "bg-[#FFC400] text-black" }
+    ? { rotulo: "Presença confirmada", cls: "bg-[#22A04B] text-white" }
     : respondeuPresenca
       ? { rotulo: "Rever presença", cls: "bg-invite-olive text-white" }
       : { rotulo: "Confirmar presença", cls: "bg-invite-olive text-white" };
@@ -167,18 +215,24 @@ export default function ConviteMickey({
 
           <nav
             aria-label="Ações do convite"
-            className="mt-[1cqmin] flex flex-wrap items-center justify-center gap-[1.4cqmin] portrait:gap-[2cqw]"
+            className="mt-[1.2cqmin] grid w-full max-w-[min(100%,62cqmin)] grid-cols-2 gap-x-[1.8cqmin] gap-y-[2.2cqmin] pb-[5px] portrait:max-w-full portrait:gap-x-[3cqw] portrait:gap-y-[3.4cqw]"
           >
-            <Botao href={`/confirmacao?token=${t}`} className={confirmar.cls}>
+            <Botao href={`/confirmacao?token=${t}`} icone={<IconeCheck />} className={confirmar.cls}>
               {confirmar.rotulo}
             </Botao>
-            <Botao href={`/presentes?token=${t}`}>Presentes</Botao>
+            <Botao href={`/presentes?token=${t}`} icone={<IconePresente />} className="bg-[#FFC400] text-black">
+              Presentes
+            </Botao>
             {evento.localMapUrl ? (
-              <Botao href={evento.localMapUrl} externo className="bg-black text-white">
+              <Botao href={evento.localMapUrl} externo icone={<IconePin />} className="bg-black text-white">
                 Como chegar
               </Botao>
             ) : null}
-            <Botao href={`/recados?token=${t}`} className="bg-white text-invite-olive ring-2 ring-invite-olive">
+            <Botao
+              href={`/recados?token=${t}`}
+              icone={<IconeRecado />}
+              className={`bg-white text-invite-olive ${evento.localMapUrl ? "" : "col-span-2"}`}
+            >
               Recados
             </Botao>
           </nav>
