@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const PALETAS: Record<string, { cor: string; fundo: string; destaque: string }> = {
   oliva: { cor: "#4B5320", fundo: "#F0EBE1", destaque: "#B8860B" },
-  mickey: { cor: "#C8102E", fundo: "#FFF8E1", destaque: "#111111" },
+  mickey: { cor: "#D6001C", fundo: "#FFFFFF", destaque: "#111111" },
 };
 
 async function loadFont(url: string): Promise<ArrayBuffer | null> {
