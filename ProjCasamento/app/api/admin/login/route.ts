@@ -46,6 +46,6 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ sucesso: true, trocarSenha: usuario.trocarSenha });
-  response.cookies.set(COOKIE_SESSAO, criarValorSessao(usuario.id), cookieSessaoOpcoes());
+  response.cookies.set(COOKIE_SESSAO, criarValorSessao(usuario.id), cookieSessaoOpcoes(request));
   return response;
 }

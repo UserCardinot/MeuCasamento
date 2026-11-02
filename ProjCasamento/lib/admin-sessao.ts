@@ -74,10 +74,11 @@ export async function exigirSuper(): Promise<AdminAtual | NextResponse> {
   return admin;
 }
 
-export function cookieSessaoOpcoes() {
+export function cookieSessaoOpcoes(request: Request) {
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: proto === "https",
     sameSite: "lax" as const,
     maxAge: SESSAO_DURACAO_S,
     path: "/",
