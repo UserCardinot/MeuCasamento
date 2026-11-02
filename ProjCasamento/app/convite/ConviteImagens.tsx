@@ -37,23 +37,6 @@ export function ConviteLogoImagem({ slug, alt, fallback }: { slug: string; alt: 
   );
 }
 
-/** `capa.png` inteira (personagem) preenchendo o container pai, que deve ser `relative`. */
-export function ConviteImagemPersonagem({ slug, alt, fallback }: { slug: string; alt: string; fallback: ReactNode }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <>{fallback}</>;
-  return (
-    <Image
-      src={srcEvento(slug, "capa.png")}
-      alt={alt}
-      fill
-      className="object-contain object-bottom"
-      sizes="(orientation: portrait) 100vw, 45vw"
-      onError={() => setFailed(true)}
-      priority
-    />
-  );
-}
-
 /**
  * Ocupa o restante da primeira tela (rodapé inteiro), fazendo a transição visual para a página 2 ao rolar.
  */

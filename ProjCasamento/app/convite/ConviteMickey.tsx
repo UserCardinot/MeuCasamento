@@ -1,7 +1,9 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { SimboloMickey } from "@/components/invite/SimboloMickey";
-import { ConviteImagemPersonagem } from "./ConviteImagens";
 import {
   diasAteEvento,
   getDataHoraConviteUppercase,
@@ -81,6 +83,7 @@ export default function ConviteMickey({
   const dias = textoDias(diasAteEvento(evento));
   const t = encodeURIComponent(token);
   const primeiroNome = nomeConvidado.split(/\s+/)[0];
+  const temCapa = existsSync(path.join(process.cwd(), "public", "eventos", evento.slug, "capa.png"));
 
   const confirmar = presencaConfirmada
     ? { rotulo: "Presença confirmada ✓", cls: "bg-[#FFC400] text-black" }
@@ -96,15 +99,20 @@ export default function ConviteMickey({
           style={pontinhosBrancos}
         >
           <div className="absolute inset-x-[6%] bottom-0 top-[6%]">
-            <ConviteImagemPersonagem
-              slug={evento.slug}
-              alt={nome}
-              fallback={
-                <div className="flex h-full w-full items-center justify-center pb-[6%]">
-                  <SimboloMickey idade={idade} className="h-auto max-h-full w-[78%]" />
-                </div>
-              }
-            />
+            {temCapa ? (
+              <Image
+                src={`/eventos/${evento.slug}/capa.png`}
+                alt={nome}
+                fill
+                className="object-contain object-bottom"
+                sizes="(orientation: portrait) 100vw, 45vw"
+                priority
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center pb-[6%]">
+                <SimboloMickey idade={idade} className="h-auto max-h-full w-[78%]" />
+              </div>
+            )}
           </div>
         </div>
 
