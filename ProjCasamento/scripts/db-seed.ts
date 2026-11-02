@@ -7,7 +7,7 @@ import { hashSenha } from "../lib/senha";
 const EVENTOS_INICIAIS: (typeof schema.eventos.$inferInsert)[] = [
   {
     slug: "convite-henry",
-    dominio: "convite-henry.lumenemotion.com.br",
+    dominio: "convite-henry.lumensoft.com.br",
     tipo: "convite_completo",
     tema: "mickey",
     titulo: "Aniversário de 2 anos do Henry",
@@ -18,7 +18,7 @@ const EVENTOS_INICIAIS: (typeof schema.eventos.$inferInsert)[] = [
   },
   {
     slug: "convite-ediane",
-    dominio: "convite-ediane.lumenemotion.com.br",
+    dominio: "convite-ediane.lumensoft.com.br",
     tipo: "so_presentes",
     tema: "oliva",
     titulo: "Casamento",

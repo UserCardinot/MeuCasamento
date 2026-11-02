@@ -34,7 +34,7 @@ Legenda das tarefas:
 | Tema | Decisão |
 |---|---|
 | Casamento Lucas & Beatriz | Arquivado (tag no git). Dados continuam no Sheets/Drive. Não é migrado. |
-| Acesso dos convidados | Um **subdomínio por evento**: `convite-henry.lumenemotion.com.br` (aniversário) e `convite-ediane.lumenemotion.com.br` (casamento). |
+| Acesso dos convidados | Um **subdomínio por evento**: `convite-henry.lumensoft.com.br` (aniversário) e `convite-ediane.lumensoft.com.br` (casamento). |
 | Banco | **Postgres próprio** do projeto, em container no `docker-compose` do casamento. |
 | Admin | Login **usuário + senha** por pessoa. Cada admin vê só o próprio evento. Você é **super admin** (vê tudo). |
 | Dados do evento | Editáveis pelo próprio admin numa tela de **Configurações**. |
@@ -56,8 +56,8 @@ Legenda das tarefas:
 ### Arquitetura final
 
 ```text
-Convidado ──► convite-henry.lumenemotion.com.br ──┐
-Convidado ──► convite-ediane.lumenemotion.com.br ─┤
+Convidado ──► convite-henry.lumensoft.com.br ──┐
+Convidado ──► convite-ediane.lumensoft.com.br ─┤
                                           ▼
                      Nginx (HTTPS, um server por subdomínio)
                                           ▼
@@ -98,12 +98,12 @@ Faça na ordem. Cada item diz **quando** ele bloqueia o trabalho.
 
 ### 2.1 Escolher os subdomínios — [VOCÊ] — feito
 
-- `convite-henry.lumenemotion.com.br` (aniversário de 2 anos — Mickey)
-- `convite-ediane.lumenemotion.com.br` (casamento — sem convite)
+- `convite-henry.lumensoft.com.br` (aniversário de 2 anos — Mickey)
+- `convite-ediane.lumensoft.com.br` (casamento — sem convite)
 
 ### 2.2 Criar os registros DNS — [VOCÊ] — bloqueia a Etapa 7
 
-No painel onde o domínio `lumenemotion.com.br` está (o mesmo usado para `meucasamento`):
+No painel onde o domínio `lumensoft.com.br` está:
 
 | Tipo | Nome | Valor | TTL |
 |---|---|---|---|
@@ -113,8 +113,8 @@ No painel onde o domínio `lumenemotion.com.br` está (o mesmo usado para `meuca
 Para conferir (no PowerShell):
 
 ```powershell
-nslookup convite-henry.lumenemotion.com.br
-nslookup convite-ediane.lumenemotion.com.br
+nslookup convite-henry.lumensoft.com.br
+nslookup convite-ediane.lumensoft.com.br
 ```
 
 Tem que responder `195.35.18.119`. Pode levar de minutos a algumas horas.
@@ -296,7 +296,7 @@ Arquivo `db/schema.ts` (Drizzle). Estrutura equivalente em SQL:
 CREATE TABLE eventos (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slug             text UNIQUE NOT NULL,            -- 'convite-henry', 'convite-ediane'
-  dominio          text UNIQUE NOT NULL,            -- 'convite-henry.lumenemotion.com.br'
+  dominio          text UNIQUE NOT NULL,            -- 'convite-henry.lumensoft.com.br'
   tipo             text NOT NULL CHECK (tipo IN ('convite_completo','so_presentes')),
   tema             text NOT NULL,                   -- 'mickey' | 'oliva'
   titulo           text NOT NULL,                   -- 'Aniversário do Theo' / 'Maria & João'
@@ -730,7 +730,7 @@ Arquivo `infra/nginx-eventos.conf` (um `server_name` com todos os subdomínios; 
 ```nginx
 server {
     listen 80;
-    server_name convite-henry.lumenemotion.com.br convite-ediane.lumenemotion.com.br;
+    server_name convite-henry.lumensoft.com.br convite-ediane.lumensoft.com.br;
 
     client_max_body_size 10m;
 
@@ -750,7 +750,7 @@ server {
 sudo cp infra/nginx-eventos.conf /etc/nginx/sites-available/eventos
 sudo ln -sf /etc/nginx/sites-available/eventos /etc/nginx/sites-enabled/eventos
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d convite-henry.lumenemotion.com.br -d convite-ediane.lumenemotion.com.br
+sudo certbot --nginx -d convite-henry.lumensoft.com.br -d convite-ediane.lumensoft.com.br
 ```
 
 - `proxy_set_header Host $host` é **obrigatório** (é como o app sabe o evento).
@@ -782,8 +782,8 @@ gunzip -c /opt/casamento/backups/casamento-AAAA-MM-DD.sql.gz | docker exec -i ca
 
 ### 7.6 Teste final — [JUNTOS]
 
-- [ ] `https://convite-henry.lumenemotion.com.br/admin` → login do admin do aniversário.
-- [ ] `https://convite-ediane.lumenemotion.com.br/admin` → login do admin do casamento.
+- [ ] `https://convite-henry.lumensoft.com.br/admin` → login do admin do aniversário.
+- [ ] `https://convite-ediane.lumensoft.com.br/admin` → login do admin do casamento.
 - [ ] Cada um cadastra 1 convidado de teste e manda o link no próprio WhatsApp.
 - [ ] Abrir o link no celular → confirmar presença → aparece no admin.
 - [ ] Presente via Pix (QR com valor certo) e via cartão de teste.
@@ -806,7 +806,7 @@ Mande para cada um:
 | Situação | Como resolver |
 |---|---|
 | Parente esqueceu a senha | `docker compose --profile tools run --rm migrate node --import tsx scripts/criar-usuario.ts --login ana --resetar` → nova senha provisória |
-| Novo evento no futuro | Super admin cria em **Eventos** · DNS do novo subdomínio · adicionar no `server_name` do Nginx · `certbot --nginx -d novo.lumenemotion.com.br --expand` |
+| Novo evento no futuro | Super admin cria em **Eventos** · DNS do novo subdomínio · adicionar no `server_name` do Nginx · `certbot --nginx -d novo.lumensoft.com.br --expand` |
 | Atualizar o site | `git pull` + `docker compose up -d --build casamento` (+ `migrate` se houver migration nova) |
 | Ver dados direto no banco | `docker exec -it casamento-db psql -U casamento` |
 | Evento terminou | Admin/super marca `ativo = false` → site mostra “Evento encerrado”; dados ficam no banco |

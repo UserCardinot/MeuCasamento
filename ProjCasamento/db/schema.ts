@@ -12,7 +12,7 @@ import {
 export const eventos = pgTable("eventos", {
   id: serial("id").primaryKey(),
   slug: text("slug").notNull().unique(),
-  /** Host completo (ex.: convite-henry.lumenemotion.com.br). */
+  /** Host completo (ex.: convite-henry.lumensoft.com.br). */
   dominio: text("dominio").notNull().unique(),
   /** convite_completo | so_presentes */
   tipo: text("tipo").notNull().default("convite_completo"),
