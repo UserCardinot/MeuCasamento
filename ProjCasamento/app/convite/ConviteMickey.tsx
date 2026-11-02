@@ -14,7 +14,6 @@ import {
 type Props = {
   evento: EventoPublico;
   token: string;
-  nomeConvidado: string;
   respondeuPresenca: boolean;
   presencaConfirmada: boolean;
 };
@@ -128,7 +127,6 @@ function Botao({
 export default function ConviteMickey({
   evento,
   token,
-  nomeConvidado,
   respondeuPresenca,
   presencaConfirmada,
 }: Props) {
@@ -137,7 +135,6 @@ export default function ConviteMickey({
   const dataHora = getDataHoraConviteUppercase(evento);
   const dias = textoDias(diasAteEvento(evento));
   const t = encodeURIComponent(token);
-  const primeiroNome = nomeConvidado.split(/\s+/)[0];
   const temCapa = existsSync(path.join(process.cwd(), "public", "eventos", evento.slug, "capa.png"));
 
   const confirmar = presencaConfirmada
@@ -184,14 +181,14 @@ export default function ConviteMickey({
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-[2cqmin] px-[4cqw] py-[3cqh] text-center portrait:gap-[2.4cqw]">
           <SimboloMickey className="absolute right-[2.5cqmin] top-[2.5cqmin] h-auto w-[max(2.5rem,9cqmin)] portrait:w-[12cqw]" />
           <p className={`font-invite-caps font-medium uppercase tracking-[0.14em] text-black ${txt.pequeno}`}>
-            {primeiroNome}, você está convidado(a)
+            Você está convidado para o aniversário de
           </p>
 
           <h1 className={`font-nomes-noivos leading-[0.95] text-invite-olive ${txt.nome}`}>{nome}</h1>
 
-          {evento.titulo && evento.titulo.trim() !== nome ? (
-            <p className={`font-invite-caps font-semibold text-black ${txt.medio}`}>{evento.titulo}</p>
-          ) : null}
+          <p className={`font-invite-caps font-semibold text-black ${txt.medio}`}>
+            Venha celebrar com a gente esse dia tão especial!
+          </p>
 
           {dataHora ? (
             <p

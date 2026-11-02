@@ -253,7 +253,6 @@ export default async function ConvitePage({ searchParams }: Props) {
       <ConviteMickey
         evento={evento}
         token={ctx.convidado.token}
-        nomeConvidado={ctx.convidado.nome}
         respondeuPresenca={respondeuPresenca}
         presencaConfirmada={presencaConfirmada}
       />
