@@ -37,21 +37,27 @@ export function ConviteLogoImagem({ slug, alt, fallback }: { slug: string; alt: 
   );
 }
 
+/** `capa.png` inteira (personagem) preenchendo o container pai, que deve ser `relative`. */
+export function ConviteImagemPersonagem({ slug, alt, fallback }: { slug: string; alt: string; fallback: ReactNode }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  return (
+    <Image
+      src={srcEvento(slug, "capa.png")}
+      alt={alt}
+      fill
+      className="object-contain object-bottom"
+      sizes="(orientation: portrait) 100vw, 45vw"
+      onError={() => setFailed(true)}
+      priority
+    />
+  );
+}
+
 /**
  * Ocupa o restante da primeira tela (rodapé inteiro), fazendo a transição visual para a página 2 ao rolar.
  */
-export function ConviteCapaTransicao({
-  slug,
-  alt,
-  fallback,
-  destaque = false,
-}: {
-  slug: string;
-  alt: string;
-  fallback: ReactNode;
-  /** Imagem inteira e opaca (personagem), em vez de foto esmaecida de fundo. */
-  destaque?: boolean;
-}) {
+export function ConviteCapaTransicao({ slug, alt, fallback }: { slug: string; alt: string; fallback: ReactNode }) {
   const [failed, setFailed] = useState(false);
 
   /** Quinas arredondadas (raio pequeno) + fade forte em cima/baixo; laterais mais curtas. */
@@ -70,22 +76,6 @@ export function ConviteCapaTransicao({
     return (
       <div className={`${shellClass} bg-transparent`}>
         {fallback}
-      </div>
-    );
-  }
-
-  if (destaque) {
-    return (
-      <div className={`${shellClass} bg-transparent`}>
-        <Image
-          src={srcEvento(slug, "capa.png")}
-          alt={alt}
-          fill
-          className="object-contain object-bottom"
-          sizes="(max-width: 768px) 100vw, 794px"
-          onError={() => setFailed(true)}
-          priority
-        />
       </div>
     );
   }

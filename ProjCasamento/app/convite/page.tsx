@@ -8,7 +8,7 @@ import BannerPresencaConvite from "./BannerPresencaConvite";
 import ContagemRegressiva from "./ContagemRegressiva";
 import { ConviteCapaTransicao, ConviteLogoImagem } from "./ConviteImagens";
 import CapaEvento from "./CapaEvento";
-import { SimboloMickey } from "@/components/invite/SimboloMickey";
+import ConviteMickey from "./ConviteMickey";
 import { getDataHoraConviteUppercase, getEventoTimestamp, nomeDestaque } from "@/lib/evento";
 
 export const dynamic = "force-dynamic";
@@ -204,39 +204,8 @@ function ErroConvite({ mensagem, detalhe }: { mensagem: string; detalhe?: string
   );
 }
 
-function idadeDoTitulo(titulo: string | null | undefined): string | undefined {
-  return titulo?.match(/(\d+)\s*anos?/i)?.[1];
-}
-
-function LogoEvento({
-  evento,
-  alt,
-  fallback,
-}: {
-  evento: { slug: string; tema: string; titulo: string | null };
-  alt: string;
-  fallback: ReactNode;
-}) {
-  if (evento.tema === "mickey") {
-    return (
-      <SimboloMickey
-        idade={idadeDoTitulo(evento.titulo)}
-        className="mx-auto block h-auto w-[8.5rem] sm:w-[11rem] md:w-[12.5rem]"
-      />
-    );
-  }
-  return <ConviteLogoImagem slug={evento.slug} alt={alt} fallback={fallback} />;
-}
-
 /** Rodapé da página 1 quando o evento não tem `public/eventos/<slug>/capa.png`. */
-function ConviteCapaPlaceholder({ tema }: { tema: string }) {
-  if (tema === "mickey") {
-    return (
-      <div className="flex h-full w-full items-center justify-center py-16" aria-hidden>
-        <SimboloMickey className="h-auto w-48 opacity-90" />
-      </div>
-    );
-  }
+function ConviteCapaPlaceholder() {
   return (
     <div className="flex h-full w-full items-center justify-center py-16" aria-hidden>
       <span className="h-px w-32 bg-invite-olive/40" />
@@ -279,6 +248,18 @@ export default async function ConvitePage({ searchParams }: Props) {
     );
   }
 
+  if (evento.tema === "mickey") {
+    return (
+      <ConviteMickey
+        evento={evento}
+        token={ctx.convidado.token}
+        nomeConvidado={ctx.convidado.nome}
+        respondeuPresenca={respondeuPresenca}
+        presencaConfirmada={presencaConfirmada}
+      />
+    );
+  }
+
   const nome = nomeDestaque(evento);
   const [ini1, ini2] = iniciais(nome);
   const dataHora = getDataHoraConviteUppercase(evento);
@@ -306,8 +287,8 @@ export default async function ConvitePage({ searchParams }: Props) {
               <div className="flex w-full translate-y-5 flex-col items-center sm:translate-y-6 md:translate-y-7">
                 <header className="flex w-full shrink-0 flex-col items-center gap-3 sm:gap-4 md:gap-5">
                   <div className="-translate-y-7 sm:-translate-y-8 md:-translate-y-10">
-                    <LogoEvento
-                      evento={evento}
+                    <ConviteLogoImagem
+                      slug={evento.slug}
                       alt={evento.titulo || nome}
                       fallback={<Monograma a={ini1} b={ini2} />}
                     />
@@ -338,16 +319,15 @@ export default async function ConvitePage({ searchParams }: Props) {
             </div>
             <ConviteCapaTransicao
               slug={evento.slug}
-              destaque={evento.tema === "mickey"}
               alt={nome}
-              fallback={<ConviteCapaPlaceholder tema={evento.tema} />}
+              fallback={<ConviteCapaPlaceholder />}
             />
           </section>
 
           <section className="flex flex-col items-center justify-start pt-4 pb-4 sm:pt-5 sm:pb-5 md:pt-6">
             <div className="w-full pb-2 sm:pb-3">
-              <LogoEvento
-                evento={evento}
+              <ConviteLogoImagem
+                slug={evento.slug}
                 alt={evento.titulo || nome}
                 fallback={<Monograma a={ini1} b={ini2} />}
               />
