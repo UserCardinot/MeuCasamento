@@ -98,21 +98,31 @@ export default function ConviteMickey({
           className="relative shrink-0 bg-invite-olive landscape:h-full landscape:w-[42%] landscape:border-r-[6px] landscape:border-[#FFC400] portrait:h-[36%] portrait:w-full portrait:border-b-[6px] portrait:border-[#FFC400]"
           style={pontinhosBrancos}
         >
-          <div className="absolute inset-x-[6%] bottom-0 top-[6%]">
-            {temCapa ? (
-              <Image
-                src={`/eventos/${evento.slug}/capa.png`}
-                alt={nome}
-                fill
-                className="object-contain object-bottom"
-                sizes="(orientation: portrait) 100vw, 45vw"
-                priority
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center pb-[6%]">
-                <SimboloMickey idade={idade} className="h-auto max-h-full w-[78%]" />
-              </div>
-            )}
+          <div className="absolute inset-x-[6%] bottom-0 top-[5%] flex flex-col items-center">
+            <div className="relative min-h-0 w-full flex-1">
+              {temCapa ? (
+                <Image
+                  src={`/eventos/${evento.slug}/capa.png`}
+                  alt={nome}
+                  fill
+                  className="object-contain object-bottom drop-shadow-[0_6px_10px_rgba(0,0,0,0.35)]"
+                  sizes="(orientation: portrait) 100vw, 45vw"
+                  priority
+                />
+              ) : (
+                <div className="flex h-full w-full items-end justify-center">
+                  <SimboloMickey className="h-auto max-h-full w-[72%]" />
+                </div>
+              )}
+            </div>
+            {idade ? (
+              <p
+                className="font-nomes-noivos shrink-0 py-[2.5cqmin] text-center font-bold leading-none text-[#FFC400] text-[max(2rem,10cqmin)] portrait:py-[2cqw] portrait:text-[max(2rem,11cqw)]"
+                style={{ WebkitTextStroke: "0.06em #111111", paintOrder: "stroke fill" }}
+              >
+                {idade} {idade === "1" ? "ano" : "anos"}
+              </p>
+            ) : null}
           </div>
         </div>
 
