@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { SimboloMickey } from "@/components/invite/SimboloMickey";
+import ContagemMickey from "./ContagemMickey";
 import {
-  diasAteEvento,
   formatarPrazoConfirmacao,
   getDataHoraConviteUppercase,
+  getEventoTimestamp,
   nomeDestaque,
   prazoConfirmacaoEncerrado,
   type EventoPublico,
@@ -85,13 +86,6 @@ const pontinhosBrancos = {
   backgroundSize: "28px 28px",
 };
 
-function textoDias(dias: number | null): string | null {
-  if (dias === null || dias < 0) return null;
-  if (dias === 0) return "É hoje!";
-  if (dias === 1) return "É amanhã!";
-  return `Faltam ${dias} dias!`;
-}
-
 function Botao({
   href,
   externo,
@@ -135,7 +129,7 @@ export default function ConviteMickey({
   const nome = nomeDestaque(evento);
   const idade = evento.titulo.match(/(\d+)\s*anos?/i)?.[1];
   const dataHora = getDataHoraConviteUppercase(evento);
-  const dias = textoDias(diasAteEvento(evento));
+  const alvo = getEventoTimestamp(evento);
   const t = encodeURIComponent(token);
   const temCapa = existsSync(path.join(process.cwd(), "public", "eventos", evento.slug, "capa.png"));
 
@@ -222,11 +216,7 @@ export default function ConviteMickey({
             </div>
           ) : null}
 
-          {dias ? (
-            <p className={`font-nomes-noivos font-bold text-black ${txt.medio}`}>
-              <span className="rounded-lg bg-[#FFC400] px-[1.6cqmin] py-[0.4cqmin]">{dias}</span>
-            </p>
-          ) : null}
+          {alvo > 0 ? <ContagemMickey alvo={alvo} /> : null}
 
           <nav
             aria-label="Ações do convite"
