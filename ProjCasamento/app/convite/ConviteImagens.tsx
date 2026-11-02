@@ -3,12 +3,13 @@
 import Image from "next/image";
 import { type ReactNode, useState } from "react";
 
-/** Arquivos em `public/convite/` ou `NEXT_PUBLIC_CONVITE_*` no .env.local */
-const SRC_LOGO = process.env.NEXT_PUBLIC_CONVITE_LOGO?.trim() || "/convite/logo.png";
-const SRC_CAPA = process.env.NEXT_PUBLIC_CONVITE_CAPA?.trim() || "/convite/capa.png";
+/** Imagens por evento em `public/eventos/<slug>/logo.png` e `capa.png`. */
+function srcEvento(slug: string, arquivo: "logo.png" | "capa.png"): string {
+  return `/eventos/${slug}/${arquivo}`;
+}
 
 /**
- * `public/convite/logo.png` (500×500): recorte só do vazio vertical (top/bottom ~32%).
+ * `logo.png` (500×500): recorte só do vazio vertical (top/bottom ~32%).
  * Largura do viewport = largura da imagem, para não cortar o desenho nas laterais.
  */
 const LOGO_PNG = { w: 500, h: 500, top: 160, contentH: 180 } as const;
@@ -18,13 +19,13 @@ const logoViewport =
 const logoImage =
   "mx-auto block h-[var(--logo-d)] w-[var(--logo-d)] max-w-[min(100%,92vw)] object-contain -mt-[calc(var(--logo-d)*0.32)]";
 
-export function ConviteLogoImagem({ alt, fallback }: { alt: string; fallback: ReactNode }) {
+export function ConviteLogoImagem({ slug, alt, fallback }: { slug: string; alt: string; fallback: ReactNode }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <>{fallback}</>;
   return (
     <div className={logoViewport}>
       <Image
-        src={SRC_LOGO}
+        src={srcEvento(slug, "logo.png")}
         alt={alt}
         width={LOGO_PNG.w}
         height={LOGO_PNG.h}
@@ -39,7 +40,7 @@ export function ConviteLogoImagem({ alt, fallback }: { alt: string; fallback: Re
 /**
  * Ocupa o restante da primeira tela (rodapé inteiro), fazendo a transição visual para a página 2 ao rolar.
  */
-export function ConviteCapaTransicao({ alt, fallback }: { alt: string; fallback: ReactNode }) {
+export function ConviteCapaTransicao({ slug, alt, fallback }: { slug: string; alt: string; fallback: ReactNode }) {
   const [failed, setFailed] = useState(false);
 
   /** Quinas arredondadas (raio pequeno) + fade forte em cima/baixo; laterais mais curtas. */
@@ -67,7 +68,7 @@ export function ConviteCapaTransicao({ alt, fallback }: { alt: string; fallback:
       <div className={capaClip}>
         <div className={`absolute inset-0 ${capaMascaraArestas}`}>
         <Image
-          src={SRC_CAPA}
+          src={srcEvento(slug, "capa.png")}
           alt={alt}
           fill
           className="object-cover object-[center_68%] opacity-45"

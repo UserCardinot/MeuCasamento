@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { updateCatalogoPresenteRow } from "@/lib/google";
-import { validateAdminSessionToken } from "@/lib/auth";
+import { exigirAdmin } from "@/lib/admin-sessao";
+import { atualizarPresente } from "@/lib/repo/catalogo";
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-  if (!session || !validateAdminSessionToken(session)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+  const admin = await exigirAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   let body: {
     nomeOriginal?: string;
@@ -33,18 +29,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Nome obrigatório" }, { status: 400 });
   }
 
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
-
   try {
-    const result = await updateCatalogoPresenteRow(sheetId, nomeOriginal, {
+    const result = await atualizarPresente(admin.evento.id, nomeOriginal, {
       nome,
       preco: body?.preco?.trim() || "",
       url: body?.url?.trim() || "",
       imagem: body?.imagem?.trim() || "",
-      ativo: body?.ativo?.trim() || "Sim",
+      ativo: (body?.ativo?.trim() || "Sim").toLowerCase().startsWith("s"),
     });
     if (result === "not_found") {
       return NextResponse.json({ erro: "Presente não encontrado" }, { status: 404 });
@@ -55,6 +46,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao editar presente:", err);
-    return NextResponse.json({ erro: "Erro ao salvar na planilha. Tente novamente." }, { status: 500 });
+    return NextResponse.json({ erro: "Erro ao salvar. Tente novamente." }, { status: 500 });
   }
 }

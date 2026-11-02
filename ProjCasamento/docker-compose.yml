@@ -14,6 +14,9 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - NODE_OPTIONS=--max-old-space-size=4096
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test:
@@ -21,9 +24,50 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
+
+  db:
+    image: postgres:16-alpine
+    container_name: casamento-db
+    environment:
+      - POSTGRES_USER=casamento
+      - POSTGRES_DB=casamento
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    # Só localhost (para túnel SSH); a app acessa pela rede interna do compose
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - casamento_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casamento -d casamento"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Uso: docker compose --profile tools run --rm migrate npm run db:migrate
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    working_dir: /app
+    env_file:
+      - .env
+    volumes:
+      - ./drizzle:/app/drizzle:ro
+      - ./db:/app/db:ro
+      - ./lib:/app/lib:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  casamento_pgdata:

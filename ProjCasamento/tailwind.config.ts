@@ -18,10 +18,11 @@ const config: Config = {
         "noivos-script": ['"Luxurious Script"', "cursive"],
       },
       colors: {
+        /** Cores do tema do evento — ver variáveis em globals.css */
         invite: {
-          olive: "#4B5320",
-          /** Papel do convite — off-white quente, levemente mais “papel” que branco puro */
-          cream: "#F0EBE1",
+          olive: "rgb(var(--invite-olive) / <alpha-value>)",
+          cream: "rgb(var(--invite-cream) / <alpha-value>)",
+          accent: "rgb(var(--invite-accent) / <alpha-value>)",
         },
         casamento: {
           "oliva-escuro": "#4A5D3A",

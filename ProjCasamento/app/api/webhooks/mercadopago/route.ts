@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
+import { getEventoAtual } from "@/lib/evento-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,12 @@ function extractPaymentIdFromWebhookBody(body: unknown): string | null {
 }
 
 async function processPaymentNotification(id: string, origem: string) {
-  const result = await registrarPagamentoMercadoPago(id);
+  const evento = await getEventoAtual();
+  if (!evento) {
+    console.warn(`Webhook MP (${origem}): evento não encontrado para o host`, id);
+    return;
+  }
+  const result = await registrarPagamentoMercadoPago(evento, id);
   if (!result.ok) {
     console.warn(`Webhook MP (${origem}):`, result.erro, id);
   } else if (!result.jaRegistrado) {

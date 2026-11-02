@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Cinzel, Italianno, Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Cinzel, Fredoka, Italianno, Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { getEventoAtual } from "@/lib/evento-atual";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -28,10 +29,24 @@ const italiannoInvite = Italianno({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Casamento Lucas & Beatriz",
-  description: "Nosso dia especial – convite, confirmação e presentes",
-};
+/** Tema Mickey — títulos arredondados e divertidos */
+const fredoka = Fredoka({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mickey-display",
+  display: "swap",
+});
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const evento = await getEventoAtual().catch(() => null);
+  const titulo = evento?.titulo || evento?.anfitrioes || "Convite";
+  return {
+    title: titulo,
+    description: "Confirmação de presença, lista de presentes e recados.",
+  };
+}
 
 export const viewport = {
   width: "device-width",
@@ -39,16 +54,17 @@ export const viewport = {
   maximumScale: 5,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const evento = await getEventoAtual().catch(() => null);
   return (
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={`${playfair.variable} ${jakarta.variable} ${cinzelInvite.variable} ${italiannoInvite.variable}`}
+      className={`${playfair.variable} ${jakarta.variable} ${cinzelInvite.variable} ${italiannoInvite.variable} ${fredoka.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -62,6 +78,7 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
+        data-tema={evento?.tema || "oliva"}
         className="font-sans antialiased min-h-screen bg-[#FAFAFA] text-stone-800"
       >
         {children}

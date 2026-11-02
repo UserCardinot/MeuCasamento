@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import QRCode from "qrcode";
-import {
-  createPixCopiaColaComValor,
-  getPixRecebedorConfig,
-  parsePixFromCopiaCola,
-} from "@/lib/pix-brcode";
+import { createPixCopiaColaComValor, getPixRecebedorConfig } from "@/lib/pix-brcode";
+import { getEventoAtual } from "@/lib/evento-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -19,27 +16,10 @@ function parseValorBody(body: unknown): number | null {
   return null;
 }
 
-/** Pix estático (sem valor fixo) — compatibilidade. */
-export async function GET() {
-  const pixCopiaCola = process.env.PIX_COPIA_COLA?.trim();
-  const pixChave = process.env.PIX_CHAVE?.trim() || null;
-
-  if (!pixCopiaCola) {
-    return NextResponse.json({ configurado: false });
-  }
-
-  const qrDataUrl = await QRCode.toDataURL(pixCopiaCola, { width: 220, margin: 2 });
-  return NextResponse.json({
-    configurado: true,
-    qrDataUrl,
-    chave: pixChave ?? parsePixFromCopiaCola(pixCopiaCola)?.chave ?? null,
-    valorFixo: false,
-  });
-}
-
 /** Pix com valor do carrinho (QR com valor fixo). */
 export async function POST(request: NextRequest) {
-  const config = getPixRecebedorConfig();
+  const evento = await getEventoAtual();
+  const config = evento ? getPixRecebedorConfig(evento) : null;
   if (!config) {
     return NextResponse.json({ configurado: false });
   }

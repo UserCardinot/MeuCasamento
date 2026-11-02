@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { validateAdminSessionToken } from "@/lib/auth";
+import { exigirAdmin } from "@/lib/admin-sessao";
 import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
 
 export const dynamic = "force-dynamic";
 
-/** Registra na planilha um pagamento MP já aprovado (ex.: pagamento que caiu mas não voltou ao site). */
+/** Registra um pagamento MP já aprovado (ex.: pagamento que caiu mas não voltou ao site). */
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-  if (!session || !validateAdminSessionToken(session)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+  const admin = await exigirAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   let body: { payment_id?: string; external_reference?: string };
   try {
@@ -29,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await registrarPagamentoMercadoPago({
+  const result = await registrarPagamentoMercadoPago(admin.evento, {
     paymentId,
     externalReference,
   });

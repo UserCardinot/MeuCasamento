@@ -195,7 +195,7 @@ export default function ListaPresentesConvidado({ token, catalog, presenteRegist
       <div className={`${presentesCard} px-8 py-14 text-center`}>
         <p className="font-heading text-lg italic text-invite-olive">Em breve</p>
         <p className="font-sans mt-3 text-sm text-invite-olive/75">
-          Os noivos ainda estão organizando a lista. Volte em alguns dias.
+          A lista ainda está sendo organizada. Volte em alguns dias.
         </p>
       </div>
     );

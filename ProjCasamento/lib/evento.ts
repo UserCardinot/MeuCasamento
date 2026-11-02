@@ -1,33 +1,93 @@
 /**
- * Configuração do evento (data, local, mapa)
- * Edite aqui para personalizar seu casamento
+ * Dados públicos do evento usados nas páginas (sem segredos).
+ * Seguro para importar em componentes cliente.
  */
-export const EVENTO = {
-  data: "2026-09-26",
-  hora: "08:30",
-  dataFormatada: "Sábado, 26 de Setembro de 2026",
-  horaFormatada: "08h30",
-  noivos: {
-    primeiro: "Lucas",
-    segundo: "Beatriz",
-    /** Letras do monograma no convite */
-    monograma: ["L", "B"] as const,
-  },
-  local: {
-    nome: "Bosque de Agriões",
-    endereco: "R. Juruena, 262 - Agriões, Teresópolis - RJ",
-    cidade: "Teresópolis",
-    mapUrl: "https://www.google.com/maps/place/Bosque+de+Agri%C3%B5es/@-22.4167594,-42.9768461,3a,68.3y,122.03h,78.94t/data=!3m7!1e1!3m5!1sYp0cumThtSm73VGLGRMlcw!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D11.058348091225682%26panoid%3DYp0cumThtSm73VGLGRMlcw%26yaw%3D122.02907173963493!7i16384!8i8192!4m6!3m5!1s0x984cd48c5b8319:0xf7b6114c2482d912!8m2!3d-22.4167718!4d-42.97677!16s%2Fg%2F11c37jmz5r?entry=ttu&g_ep=EgoyMDI2MDIxOC4wIKXMDSoASAFQAw%3D%3D", // URL do Google Maps
-  },
-} as const;
+export type EventoPublico = {
+  id: number;
+  slug: string;
+  tipo: "convite_completo" | "so_presentes";
+  tema: string;
+  titulo: string;
+  anfitrioes: string;
+  data: string;
+  hora: string;
+  localNome: string;
+  localEndereco: string;
+  localCidade: string;
+  localMapUrl: string;
+  mensagemConvite: string;
+  textoCapa: string;
+  whatsappTemplate: string;
+  pixChave: string;
+  pixNome: string;
+};
 
-/** Linha única estilo convite impresso, tudo em maiúsculas */
-export function getDataHoraConviteUppercase(): string {
-  const [h, m = "00"] = EVENTO.hora.split(":");
-  return `${EVENTO.dataFormatada.toUpperCase()} ÀS ${h}H${m.padStart(2, "0")}`;
+const TZ = "America/Sao_Paulo";
+
+function dataValida(ev: Pick<EventoPublico, "data">): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(ev.data);
 }
 
-/** Data do casamento em ms (para contagem regressiva) */
-export function getEventoTimestamp(): number {
-  return new Date(EVENTO.data + "T" + EVENTO.hora).getTime();
+/** "Sábado, 26 de setembro de 2026" */
+export function formatarDataEvento(ev: Pick<EventoPublico, "data">): string {
+  if (!dataValida(ev)) return "";
+  const d = new Date(`${ev.data}T12:00:00-03:00`);
+  const txt = d.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: TZ,
+  });
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
+/** "08h30" */
+export function formatarHoraEvento(ev: Pick<EventoPublico, "hora">): string {
+  const m = ev.hora.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  return `${m[1].padStart(2, "0")}h${m[2]}`;
+}
+
+/** "26/09/2026" */
+export function formatarDataCurta(ev: Pick<EventoPublico, "data">): string {
+  if (!dataValida(ev)) return "";
+  const [y, mo, d] = ev.data.split("-");
+  return `${d}/${mo}/${y}`;
+}
+
+/** Linha única estilo convite impresso, em maiúsculas. */
+export function getDataHoraConviteUppercase(ev: Pick<EventoPublico, "data" | "hora">): string {
+  const data = formatarDataEvento(ev).toUpperCase();
+  const hora = formatarHoraEvento(ev).toUpperCase();
+  if (!data) return "";
+  return hora ? `${data} ÀS ${hora}` : data;
+}
+
+/** Data/hora do evento em ms (contagem regressiva). 0 se não configurada. */
+export function getEventoTimestamp(ev: Pick<EventoPublico, "data" | "hora">): number {
+  if (!dataValida(ev)) return 0;
+  const hora = /^\d{1,2}:\d{2}$/.test(ev.hora) ? ev.hora.padStart(5, "0") : "12:00";
+  return new Date(`${ev.data}T${hora}:00-03:00`).getTime();
+}
+
+/** Dias civis até o evento (fuso de São Paulo). */
+export function diasAteEvento(ev: Pick<EventoPublico, "data">, agora = new Date()): number | null {
+  if (!dataValida(ev)) return null;
+  const hoje = agora.toLocaleDateString("en-CA", { timeZone: TZ });
+  const start = new Date(`${hoje}T12:00:00`);
+  const end = new Date(`${ev.data}T12:00:00`);
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000);
+}
+
+/** Texto curto para títulos: "Henry" ou "Ediane & Fulano", com fallback no título. */
+export function nomeDestaque(ev: Pick<EventoPublico, "anfitrioes" | "titulo">): string {
+  return ev.anfitrioes.trim() || ev.titulo.trim();
+}
+
+/** Formata data/hora de registros (timestamps do banco) para o painel. */
+export function formatarDataHoraRegistro(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleString("pt-BR", { timeZone: TZ });
 }

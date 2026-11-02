@@ -1,127 +1,110 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { parsePresencaSheetRow, readFromSheet } from "@/lib/google";
-import { validateAdminSessionToken } from "@/lib/auth";
-import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
+import { exigirAdmin } from "@/lib/admin-sessao";
+import { baseUrlDoEvento, toEventoPublico } from "@/lib/evento-atual";
+import { formatarDataHoraRegistro } from "@/lib/evento";
+import { listarConvidados } from "@/lib/repo/convidados";
+import { listarPresencas } from "@/lib/repo/presencas";
+import { listarPresentesRecebidos } from "@/lib/repo/presentes-recebidos";
+import { listarRecados } from "@/lib/repo/recados";
+import { listarCatalogo } from "@/lib/repo/catalogo";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_session")?.value;
-  if (!token || !validateAdminSessionToken(token)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
-
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
+  const admin = await exigirAdmin();
+  if (admin instanceof NextResponse) return admin;
+  const { evento, usuario } = admin;
 
   try {
-    const [convidados, presencas, presentes, uploads, recados, catalogoPresentes] = await Promise.all([
-      readFromSheet(sheetId, "Convidados!A2:F"),
-      readFromSheet(sheetId, "Presenças!A2:E"),
-      readFromSheet(sheetId, "Presentes!A2:D"),
-      readFromSheet(sheetId, "Uploads!A2:E"),
-      readFromSheet(sheetId, "Recados!A2:D").catch(() => []),
-      readFromSheet(sheetId, "CatalogoPresentes!A2:E").catch(() => []),
+    const [convidados, presencas, presentes, recados, catalogo] = await Promise.all([
+      listarConvidados(evento.id),
+      listarPresencas(evento.id),
+      listarPresentesRecebidos(evento.id),
+      listarRecados(evento.id),
+      listarCatalogo(evento.id),
     ]);
 
-    const baseUrl = getPublicSiteBaseUrl();
+    const baseUrl = baseUrlDoEvento(evento);
 
-    const convidadosFormatados = (convidados as (string | number)[][]).map((row) => ({
-      token: String(row[0] ?? ""),
-      nome: String(row[1] ?? ""),
-      acompanhantes: String(row[2] ?? ""),
-      contato: String(row[3] ?? ""),
-      data: String(row[4] ?? ""),
-      origem: String(row[5] ?? ""),
-      link: `${baseUrl}/convite?token=${row[0]}`,
+    const convidadosFormatados = convidados.map((c) => ({
+      token: c.token,
+      nome: c.nome,
+      acompanhantes: c.acompanhantes,
+      contato: c.contato,
+      data: formatarDataHoraRegistro(c.criadoEm),
+      origem: c.origem,
+      link: `${baseUrl}/convite?token=${c.token}`,
     }));
 
-    const tokenParaNome = new Map(convidadosFormatados.map((c) => [c.token.toLowerCase(), c.nome]));
-
-    const presencasFormatadas = (presencas as (string | number)[][]).map((row) => {
-      const mapped = parsePresencaSheetRow(row);
-      return {
-        token: row[0],
-        nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
-        confirmado: row[1],
-        nomesAcompanhantes: mapped.nomesAcompanhantes,
-        data: mapped.data,
-      };
-    });
-
-    const recadosPlanilha = (recados as (string | number)[][]).map((row) => ({
-      token: String(row[0] ?? ""),
-      nome: String(row[1] ?? ""),
-      mensagem: String(row[2] ?? ""),
-      data: String(row[3] ?? ""),
+    const presencasFormatadas = presencas.map((p) => ({
+      token: p.token,
+      nome: p.nome,
+      confirmado: p.confirmado ? "Sim" : "Não",
+      nomesAcompanhantes: p.nomesAcompanhantes,
+      data: formatarDataHoraRegistro(p.atualizadoEm),
     }));
 
-    const recadosPresenca = (presencas as (string | number)[][])
-      .map((row) => {
-        const mapped = parsePresencaSheetRow(row);
-        if (!mapped.mensagem) return null;
-        const token = String(row[0] ?? "");
-        return {
-          token,
-          nome: tokenParaNome.get(token.toLowerCase()) ?? "-",
-          mensagem: mapped.mensagem,
-          data: mapped.data,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+    const recadosFormatados = [
+      ...recados.map((r) => ({
+        token: r.convidadoToken,
+        nome: r.nome,
+        mensagem: r.mensagem,
+        data: formatarDataHoraRegistro(r.criadoEm),
+        ts: r.criadoEm.getTime(),
+      })),
+      ...presencas
+        .filter((p) => p.mensagem.trim())
+        .map((p) => ({
+          token: p.token,
+          nome: p.nome,
+          mensagem: p.mensagem,
+          data: formatarDataHoraRegistro(p.atualizadoEm),
+          ts: p.atualizadoEm.getTime(),
+        })),
+    ]
+      .sort((a, b) => b.ts - a.ts)
+      .map(({ ts: _ts, ...r }) => r);
 
-    const recadosFormatados = [...recadosPlanilha, ...recadosPresenca];
-
-    const presentesFormatados = (presentes as (string | number)[][]).map((row) => ({
-      token: row[0],
-      nome: tokenParaNome.get(String(row[0] ?? "").toLowerCase()) ?? "-",
-      presente: row[1],
-      valor: row[2],
-      data: row[3],
+    const presentesFormatados = presentes.map((p) => ({
+      token: p.convidadoToken,
+      nome: p.convidadoNome || "-",
+      presente: p.presente,
+      valor: p.valor,
+      metodo: p.metodo,
+      data: formatarDataHoraRegistro(p.criadoEm),
     }));
 
-    const uploadsFormatados = (uploads as (string | number)[][]).map((row) => ({
-      tipo: row[0],
-      nome: row[1],
-      arquivo: row[2],
-      data: row[3],
-      momento: row[4] ? String(row[4]) : undefined,
+    const catalogoFormatado = catalogo.map((p) => ({
+      nomeOriginal: p.nome,
+      nome: p.nome,
+      preco: p.preco,
+      url: p.url,
+      imagem: p.imagem,
+      ativo: p.ativo ? "Sim" : "Não",
     }));
-
-    const catalogoFormatado = (catalogoPresentes as (string | number)[][]).map((row) => {
-      const nome = String(row[0] ?? "");
-      return {
-        nomeOriginal: nome,
-        nome,
-        preco: String(row[1] ?? ""),
-        url: String(row[2] ?? ""),
-        imagem: String(row[3] ?? ""),
-        ativo: String(row[4] ?? "Sim"),
-      };
-    });
 
     return NextResponse.json({
+      evento: { ...toEventoPublico(evento), baseUrl },
+      usuario: {
+        login: usuario.login,
+        nome: usuario.nome,
+        papel: usuario.papel,
+        trocarSenha: usuario.trocarSenha,
+      },
       convidados: convidadosFormatados,
       presencas: presencasFormatadas,
       presentes: presentesFormatados,
-      uploads: uploadsFormatados,
       recados: recadosFormatados,
       catalogoPresentes: catalogoFormatado,
       resumo: {
         totalConvidados: convidadosFormatados.length,
         totalPresencas: presencasFormatadas.length,
         totalPresentes: presentesFormatados.length,
-        totalUploads: uploadsFormatados.length,
         totalRecados: recadosFormatados.length,
       },
     });
   } catch (err) {
     console.error("Erro ao listar dados admin:", err);
-    return NextResponse.json(
-      { erro: "Erro ao carregar dados" },
-      { status: 500 }
-    );
+    return NextResponse.json({ erro: "Erro ao carregar dados" }, { status: 500 });
   }
 }

@@ -54,7 +54,7 @@ export default function PixPainel({ token, presentesNomes, totalSugerido }: Prop
         if (!ativo) return;
 
         if (!data.configurado) {
-          setErro("Pix ainda não configurado pelos noivos.");
+          setErro("Pix ainda não configurado.");
           return;
         }
         if (!res.ok) {

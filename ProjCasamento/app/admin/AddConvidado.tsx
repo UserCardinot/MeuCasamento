@@ -3,13 +3,14 @@
 import { useId, useState } from "react";
 import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 import { ORIGEM_CONVIDADO_SUGESTOES } from "@/lib/origemConvidado";
+import type { EventoPublico } from "@/lib/evento";
 
-type Props = { onAdicionado: () => void };
+type Props = { evento: EventoPublico; onAdicionado: () => void };
 
 const inputClass =
   "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm transition-all placeholder:text-zinc-400 focus:border-casamento-sage focus:outline-none focus:ring-2 focus:ring-casamento-pastel/50";
 
-export default function AddConvidado({ onAdicionado }: Props) {
+export default function AddConvidado({ evento, onAdicionado }: Props) {
   const origemListId = useId();
   const [nome, setNome] = useState("");
   const [acompanhantes, setAcompanhantes] = useState("");
@@ -125,7 +126,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
                 type="text"
                 value={origem}
                 onChange={(e) => setOrigem(e.target.value)}
-                placeholder="Ex: Amigos do noivo, Igreja…"
+                placeholder="Ex: Família, Amigos, Trabalho…"
                 className={inputClass}
                 list={origemListId}
               />
@@ -151,7 +152,7 @@ export default function AddConvidado({ onAdicionado }: Props) {
               Copiar link
             </button>
             <a
-              href={buildConviteWhatsAppUrl(ultimoConvite.link, ultimoConvite.nome)}
+              href={buildConviteWhatsAppUrl(evento, ultimoConvite.link, ultimoConvite.nome)}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-casamento-oliva-escuro underline-offset-2 hover:underline"

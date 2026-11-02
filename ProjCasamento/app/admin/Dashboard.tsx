@@ -9,6 +9,8 @@ import SincronizarPagamentoMP from "./SincronizarPagamentoMP";
 import EditarConvidadoModal from "./EditarConvidadoModal";
 import EditarPresenteModal from "./EditarPresenteModal";
 import PendenciasPresencaModal from "./PendenciasPresencaModal";
+import Configuracoes from "./Configuracoes";
+import type { EventoPublico } from "@/lib/evento";
 import {
   contarPessoasNoConvite,
   totalPessoasConfirmadas,
@@ -18,6 +20,8 @@ import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 import { matchBuscaCatalogoPresente } from "@/lib/presentes-checkout";
 
 type DadosAdmin = {
+  evento: EventoPublico & { baseUrl: string };
+  usuario: { login: string; nome: string; papel: string; trocarSenha: boolean };
   convidados: {
     token: string;
     nome: string;
@@ -28,14 +32,13 @@ type DadosAdmin = {
     link: string;
   }[];
   presencas: { token: string; nome?: string; confirmado: string; nomesAcompanhantes?: string; data: string; origem?: string }[];
-  presentes: { token: string; nome?: string; presente: string; valor: string; data: string }[];
-  uploads: { tipo: string; nome: string; arquivo: string; data: string; momento?: string }[];
+  presentes: { token: string; nome?: string; presente: string; valor: string; metodo?: string; data: string }[];
   recados?: { token: string; nome: string; mensagem: string; data: string }[];
   catalogoPresentes?: { nomeOriginal: string; nome: string; preco: string; url: string; imagem: string; ativo: string }[];
-  resumo: { totalConvidados: number; totalPresencas: number; totalPresentes: number; totalUploads: number; totalRecados?: number };
+  resumo: { totalConvidados: number; totalPresencas: number; totalPresentes: number; totalRecados?: number };
 };
 
-type TabId = "overview" | "convidados" | "presencas" | "presentes" | "recados" | "midia";
+type TabId = "overview" | "convidados" | "presencas" | "presentes" | "recados" | "configuracoes";
 
 function IconLayout() {
   return (
@@ -77,10 +80,11 @@ function IconChat() {
   );
 }
 
-function IconPhoto() {
+function IconCog() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3A1.5 1.5 0 001.5 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }
@@ -138,9 +142,9 @@ const SECTION_COPY: Record<TabId, { title: string; subtitle: string }> = {
     title: "Recados",
     subtitle: "Mensagens deixadas pelos convidados.",
   },
-  midia: {
-    title: "Mídia",
-    subtitle: "Uploads, fotos e áudios enviados.",
+  configuracoes: {
+    title: "Configurações",
+    subtitle: "Dados do evento, Pix, cartão e sua senha.",
   },
 };
 
@@ -223,6 +227,7 @@ export default function Dashboard() {
         return;
       }
       setDados(json);
+      if (json.usuario?.trocarSenha) setTab("configuracoes");
     } catch {
       setDados(null);
     } finally {
@@ -251,7 +256,7 @@ export default function Dashboard() {
 
   async function excluirPresente(nomeOriginal: string, nome: string) {
     const ok = window.confirm(
-      `Excluir "${nome}" do catálogo?\n\nO item deixa de aparecer na lista de presentes. Compras já registradas na planilha não são apagadas.`
+      `Excluir "${nome}" do catálogo?\n\nO item deixa de aparecer na lista de presentes. Compras já registradas não são apagadas.`
     );
     if (!ok) return;
 
@@ -279,7 +284,7 @@ export default function Dashboard() {
 
   async function excluirConvidado(token: string, nome: string) {
     const ok = window.confirm(
-      `Excluir "${nome}" da lista de convidados?\n\nO link personalizado deixará de funcionar. Registros antigos de presença/presentes na planilha não são apagados automaticamente.`
+      `Excluir "${nome}" da lista de convidados?\n\nO link personalizado deixará de funcionar e a confirmação de presença dele será apagada. Presentes já registrados continuam no histórico.`
     );
     if (!ok) return;
 
@@ -367,7 +372,7 @@ export default function Dashboard() {
               </svg>
             </div>
             <p className="text-center text-sm leading-relaxed text-stone-700">
-              Não foi possível carregar os dados. Verifique a conexão com o Google (refresh token) e tente novamente.
+              Não foi possível carregar os dados. Verifique sua conexão e tente novamente.
             </p>
             <button
               type="button"
@@ -388,9 +393,9 @@ export default function Dashboard() {
   const convidados = dados.convidados ?? [];
   const totalPessoasEstimado = totalPessoasConvidadas(convidados);
   const presencas = dados.presencas ?? [];
-  const uploads = dados.uploads ?? [];
   const recados = dados.recados ?? [];
-  const resumo = dados.resumo ?? { totalConvidados: 0, totalPresencas: 0, totalPresentes: 0, totalUploads: 0 };
+  const resumo = dados.resumo ?? { totalConvidados: 0, totalPresencas: 0, totalPresentes: 0 };
+  const evento = dados.evento;
 
   const convidadosFiltrados = convidados.filter((c) => {
     const matchOrigem =
@@ -451,19 +456,13 @@ export default function Dashboard() {
     URL.revokeObjectURL(url);
   }
 
-  const fotos = uploads.filter((u) => u.tipo === "foto");
-  function extrairFileId(url: string): string | null {
-    const m = url.match(/\/file\/d\/([^/]+)/);
-    return m ? m[1] : null;
-  }
-
   const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "overview", label: "Visão geral", icon: <IconLayout /> },
     { id: "convidados", label: "Convidados", icon: <IconUsers />, badge: resumo.totalConvidados },
     { id: "presencas", label: "Presenças", icon: <IconCheck />, badge: resumo.totalPresencas },
     { id: "presentes", label: "Presentes", icon: <IconGift />, badge: resumo.totalPresentes },
     { id: "recados", label: "Recados", icon: <IconChat />, badge: Math.max(recados.length, resumo.totalRecados ?? 0) },
-    { id: "midia", label: "Mídia", icon: <IconPhoto />, badge: resumo.totalUploads },
+    { id: "configuracoes", label: "Configurações", icon: <IconCog /> },
   ];
 
   function selectTab(id: TabId) {
@@ -491,8 +490,13 @@ export default function Dashboard() {
       >
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-zinc-800/90 px-4">
           <div className="min-w-0">
-            <p className="truncate font-heading text-base font-semibold tracking-tight text-white">Casamento</p>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Painel administrativo</p>
+            <p className="truncate font-heading text-base font-semibold tracking-tight text-white">
+              {evento.titulo || evento.anfitrioes || "Painel"}
+            </p>
+            <p className="truncate text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+              {dados.usuario.nome || dados.usuario.login}
+              {dados.usuario.papel === "super" ? " · super" : ""}
+            </p>
           </div>
           <button
             type="button"
@@ -563,6 +567,17 @@ export default function Dashboard() {
             <p className="hidden truncate text-sm text-zinc-500 sm:block">{section.subtitle}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {convidados[0] ? (
+              <a
+                href={convidados[0].link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 lg:inline-flex"
+                title={`Abre o convite de ${convidados[0].nome} para pré-visualizar`}
+              >
+                Ver convite
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={handleRefresh}
@@ -587,7 +602,16 @@ export default function Dashboard() {
           <div className="mx-auto w-full max-w-[1600px] space-y-8 pb-10">
         {tab === "overview" && (
           <div className="space-y-8">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {dados.usuario.trocarSenha && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950">
+                Você está usando uma senha provisória. Troque em{" "}
+                <button type="button" className="font-semibold underline" onClick={() => setTab("configuracoes")}>
+                  Configurações
+                </button>
+                .
+              </div>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 {
                   label: "Convites",
@@ -604,7 +628,7 @@ export default function Dashboard() {
                 {
                   label: "Presenças",
                   value: resumo.totalPresencas,
-                  sub: "Registros recebidos na planilha.",
+                  sub: "Respostas de confirmação recebidas.",
                   bar: "bg-amber-500",
                 },
                 {
@@ -612,12 +636,6 @@ export default function Dashboard() {
                   value: resumo.totalPresentes,
                   sub: "Reservas e escolhas no site.",
                   bar: "bg-rose-500",
-                },
-                {
-                  label: "Uploads",
-                  value: resumo.totalUploads,
-                  sub: "Fotos e áudios enviados.",
-                  bar: "bg-sky-500",
                 },
               ].map((card) => (
                 <div
@@ -694,7 +712,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-8 xl:grid-cols-2 xl:items-start">
-              <AddConvidado onAdicionado={carregar} />
+              <AddConvidado evento={evento} onAdicionado={carregar} />
               <EnvioEmLote onAdicionados={carregar} />
             </div>
 
@@ -782,7 +800,7 @@ export default function Dashboard() {
                                 Copiar link
                               </button>
                               <a
-                                href={buildConviteWhatsAppUrl(c.link, c.nome)}
+                                href={buildConviteWhatsAppUrl(evento, c.link, c.nome)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
@@ -809,7 +827,7 @@ export default function Dashboard() {
                                 onClick={() => excluirConvidado(c.token, c.nome)}
                                 disabled={excluindoToken === c.token}
                                 className="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                title="Excluir convidado da planilha"
+                                title="Excluir convidado"
                               >
                                 {excluindoToken === c.token ? "Excluindo…" : "Excluir"}
                               </button>
@@ -1090,7 +1108,7 @@ export default function Dashboard() {
               <PageSection
                 eyebrow="Histórico"
                 title="Registros de presentes"
-                description="Quem comprou (pelo link do convite), presente e valor. O item continua na lista do catálogo."
+                description="Quem presenteou (pelo link do convite), presente e valor. Pix é registrado quando o convidado avisa no site; cartão é confirmado pelo Mercado Pago."
               />
               <SincronizarPagamentoMP onSincronizado={carregar} />
               <div className={TABLE_WRAP}>
@@ -1101,6 +1119,7 @@ export default function Dashboard() {
                         <th className="px-4 py-3">Nome</th>
                         <th className="px-4 py-3">Presente</th>
                         <th className="px-4 py-3">Valor</th>
+                        <th className="px-4 py-3">Forma</th>
                         <th className="px-4 py-3">Data</th>
                       </tr>
                     </thead>
@@ -1110,6 +1129,7 @@ export default function Dashboard() {
                           <td className="px-4 py-3.5 font-medium text-zinc-900">{p.nome ?? p.token}</td>
                           <td className="px-4 py-3.5 text-zinc-700">{p.presente}</td>
                           <td className="px-4 py-3.5 text-zinc-600">{p.valor ? `R$ ${p.valor}` : "—"}</td>
+                          <td className="px-4 py-3.5 text-zinc-600">{p.metodo === "cartao" ? "Cartão" : "Pix"}</td>
                           <td className="px-4 py-3.5 text-zinc-500">{p.data}</td>
                         </tr>
                       ))}
@@ -1167,101 +1187,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {tab === "midia" && (
-          <div className="space-y-10">
-            {fotos.length > 0 && (
-              <section>
-                <PageSection
-                  eyebrow="Galeria"
-                  title="Fotos enviadas"
-                  description="Miniaturas via Google Drive quando o link permitir."
-                />
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10">
-                  {fotos.map((u, i) => {
-                    const fileId = extrairFileId(u.arquivo);
-                    const thumbUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w200` : null;
-                    return (
-                      <a
-                        key={i}
-                        href={u.arquivo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 shadow-sm transition hover:ring-2 hover:ring-casamento-pastel/60"
-                      >
-                        {thumbUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={thumbUrl} alt={u.nome} className="h-full w-full object-cover transition group-hover:scale-105" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">Foto</div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            <section>
-              <PageSection
-                eyebrow="Arquivos"
-                title="Todos os uploads"
-                description="Fotos e áudios enviados pelos convidados."
-              />
-              {uploads.length > 0 ? (
-                <div className={TABLE_WRAP}>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] text-sm leading-relaxed">
-                      <thead>
-                        <tr className={THEAD_ROW}>
-                          <th className="px-4 py-3">Tipo</th>
-                          <th className="px-4 py-3">Momento</th>
-                          <th className="px-4 py-3">Nome</th>
-                          <th className="px-4 py-3">Arquivo</th>
-                          <th className="px-4 py-3">Data</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100">
-                        {uploads.map((u, i) => (
-                          <tr key={i} className="transition hover:bg-zinc-50/80">
-                            <td className="px-4 py-3.5">
-                              <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700">
-                                {u.tipo}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-600">{u.momento || "—"}</td>
-                            <td className="px-4 py-3.5 font-medium text-zinc-900">{u.nome}</td>
-                            <td className="px-4 py-3.5">
-                              {u.arquivo?.startsWith("http") ? (
-                                <a
-                                  href={u.arquivo}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-medium text-casamento-oliva-escuro hover:underline"
-                                >
-                                  Abrir
-                                </a>
-                              ) : (
-                                u.arquivo
-                              )}
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-500">{u.data}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/50 px-6 py-14 text-center">
-                  <div className="flex justify-center text-zinc-400">
-                    <IconPhoto />
-                  </div>
-                  <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-zinc-600">Nenhum upload registrado.</p>
-                </div>
-              )}
-            </section>
-          </div>
-        )}
+        {tab === "configuracoes" && <Configuracoes onSalvo={carregar} />}
           </div>
         </main>
       </div>

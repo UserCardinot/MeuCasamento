@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendToSheet } from "@/lib/google";
-import { validateAdminSessionToken } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { exigirAdmin } from "@/lib/admin-sessao";
+import { criarPresente } from "@/lib/repo/catalogo";
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_session")?.value;
-  if (!token || !validateAdminSessionToken(token)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+  const admin = await exigirAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   let body: { nome?: string; preco?: string; url?: string; imagem?: string };
   try {
@@ -22,19 +18,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Nome obrigatório" }, { status: 400 });
   }
 
-  const preco = typeof body.preco === "string" ? body.preco.trim() : "";
-  const url = typeof body.url === "string" ? body.url.trim() : "";
-  const imagem = typeof body.imagem === "string" ? body.imagem.trim() : "";
-
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
-
   try {
-    await appendToSheet(sheetId, "CatalogoPresentes!A:E", [
-      [nome, preco, url, imagem, "Sim"],
-    ]);
+    const result = await criarPresente(admin.evento.id, {
+      nome,
+      preco: typeof body.preco === "string" ? body.preco.trim() : "",
+      url: typeof body.url === "string" ? body.url.trim() : "",
+      imagem: typeof body.imagem === "string" ? body.imagem.trim() : "",
+      ativo: true,
+    });
+    if (result === "duplicate_nome") {
+      return NextResponse.json({ erro: "Já existe um presente com esse nome." }, { status: 409 });
+    }
     return NextResponse.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao adicionar presente:", err);

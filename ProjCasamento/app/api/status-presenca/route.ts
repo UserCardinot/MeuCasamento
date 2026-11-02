@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateGuestToken } from "@/lib/auth";
-import { getPresencaStatus } from "@/lib/google";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { getPresenca } from "@/lib/repo/presencas";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const presenca = await getPresencaStatus(token);
+  const presenca = await getPresenca(ctx.convidado.id);
   return NextResponse.json({
     respondeu: presenca !== null,
     confirmado: presenca?.confirmado === true,

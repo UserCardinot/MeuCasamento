@@ -158,7 +158,7 @@ export default function FormConfirmacao({
         )}
 
         <div className="flex flex-col items-center text-center">
-          <p className={labelClass}>Recado para os noivos</p>
+          <p className={labelClass}>Deixar um recado</p>
           <p className="font-sans mb-4 text-xs normal-case tracking-normal text-invite-olive/55 md:text-sm">
             Opcional
           </p>
@@ -206,7 +206,7 @@ export default function FormConfirmacao({
           />
           <div className="relative z-10 w-full max-w-lg border border-invite-olive/40 bg-invite-cream px-6 py-8 shadow-lg sm:px-8 sm:py-10">
             <h2 id="modal-recado-titulo" className="font-heading text-center text-xl italic text-invite-olive sm:text-2xl">
-              Recado para os noivos
+              Seu recado
             </h2>
             <p className="font-sans mt-2 text-center text-sm text-invite-olive/65">
               Deixe uma mensagem carinhosa (opcional)

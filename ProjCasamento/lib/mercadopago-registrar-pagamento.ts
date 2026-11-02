@@ -1,16 +1,10 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { appendToSheet, readFromSheet } from "@/lib/google";
+import type { Evento } from "@/db/schema";
 import { formatPresentesRegistro } from "@/lib/presentes-checkout";
 import { parseExternalReference } from "@/lib/mercadopago-shared";
-
-async function paymentAlreadyLogged(sheetId: string, paymentId: string): Promise<boolean> {
-  try {
-    const col = await readFromSheet(sheetId, "Presentes!E2:E2000");
-    return col.some((row) => String(row[0] ?? "").trim() === paymentId);
-  } catch {
-    return false;
-  }
-}
+import { getMpConfigEvento } from "@/lib/mercadopago-evento";
+import { getConvidado } from "@/lib/repo/convidados";
+import { registrarPresenteRecebido } from "@/lib/repo/presentes-recebidos";
 
 export type RegistrarPagamentoResult =
   | { ok: true; jaRegistrado: boolean; paymentId: string }
@@ -22,7 +16,8 @@ export type ResolverPagamentoInput = {
 };
 
 /** Busca ID de pagamento aprovado por external_reference (retorno MP sem payment_id). */
-export async function resolverPaymentIdAprovado(
+async function resolverPaymentIdAprovado(
+  accessToken: string,
   input: ResolverPagamentoInput
 ): Promise<string | null> {
   const direct = input.paymentId?.trim();
@@ -30,9 +25,6 @@ export async function resolverPaymentIdAprovado(
 
   const ref = input.externalReference?.trim();
   if (!ref) return null;
-
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
-  if (!accessToken) return null;
 
   try {
     const url = new URL("https://api.mercadopago.com/v1/payments/search");
@@ -61,14 +53,18 @@ export async function resolverPaymentIdAprovado(
   return null;
 }
 
-/** Grava presente na planilha quando o pagamento MP está aprovado (webhook ou retorno do checkout). */
+/** Grava o presente quando o pagamento MP está aprovado (webhook ou retorno do checkout). */
 export async function registrarPagamentoMercadoPago(
+  evento: Evento,
   paymentIdOrInput: string | ResolverPagamentoInput
 ): Promise<RegistrarPagamentoResult> {
+  const mp = getMpConfigEvento(evento);
+  if (!mp) return { ok: false, erro: "Mercado Pago não configurado para este evento" };
+
   const resolvedId =
     typeof paymentIdOrInput === "string"
       ? paymentIdOrInput.trim()
-      : await resolverPaymentIdAprovado(paymentIdOrInput);
+      : await resolverPaymentIdAprovado(mp.accessToken, paymentIdOrInput);
 
   const id = resolvedId?.trim();
   if (!id) {
@@ -78,14 +74,7 @@ export async function registrarPagamentoMercadoPago(
     };
   }
 
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!accessToken || !sheetId) {
-    return { ok: false, erro: "Pagamento não configurado no servidor" };
-  }
-
-  const client = new MercadoPagoConfig({ accessToken });
-  const paymentApi = new Payment(client);
+  const paymentApi = new Payment(new MercadoPagoConfig({ accessToken: mp.accessToken }));
 
   let pay: Awaited<ReturnType<Payment["get"]>>;
   try {
@@ -104,33 +93,32 @@ export async function registrarPagamentoMercadoPago(
     };
   }
 
-  if (await paymentAlreadyLogged(sheetId, id)) {
-    return { ok: true, jaRegistrado: true, paymentId: id };
-  }
-
   const parsed = parseExternalReference(pay.external_reference);
   if (!parsed) {
     console.error("MP registrar: external_reference inválido", pay.id, pay.external_reference);
     return { ok: false, erro: "Referência do presente inválida" };
   }
 
-  const { token, presentes } = parsed;
   const amount = pay.transaction_amount;
   if (typeof amount !== "number" || !Number.isFinite(amount)) {
     return { ok: false, erro: "Valor do pagamento inválido" };
   }
 
-  const valor = amount.toFixed(2).replace(".", ",");
-  const data = new Date().toLocaleString("pt-BR");
-  const presenteLabel = formatPresentesRegistro(presentes, "cartão");
+  const convidado = await getConvidado(evento.id, parsed.token);
 
   try {
-    await appendToSheet(sheetId, "Presentes!A:E", [
-      [token, presenteLabel, valor, data, id],
-    ]);
-    return { ok: true, jaRegistrado: false, paymentId: id };
+    const { criado } = await registrarPresenteRecebido({
+      eventoId: evento.id,
+      convidadoToken: parsed.token,
+      convidadoNome: convidado?.nome ?? "",
+      presente: formatPresentesRegistro(parsed.presentes, "cartão"),
+      valor: amount.toFixed(2).replace(".", ","),
+      metodo: "cartao",
+      mpPaymentId: String(id),
+    });
+    return { ok: true, jaRegistrado: !criado, paymentId: String(id) };
   } catch (e) {
-    console.error("MP registrar: erro ao gravar planilha", e);
-    return { ok: false, erro: "Erro ao salvar na planilha" };
+    console.error("MP registrar: erro ao gravar", e);
+    return { ok: false, erro: "Erro ao salvar o presente" };
   }
 }

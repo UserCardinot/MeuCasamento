@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { deleteConvidadoRow } from "@/lib/google";
-import { validateAdminSessionToken } from "@/lib/auth";
+import { exigirAdmin } from "@/lib/admin-sessao";
+import { removerConvidado } from "@/lib/repo/convidados";
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-  if (!session || !validateAdminSessionToken(session)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+  const admin = await exigirAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   let body: { token?: string };
   try {
@@ -22,22 +18,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Token obrigatório" }, { status: 400 });
   }
 
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
-
   try {
-    const result = await deleteConvidadoRow(sheetId, token);
-    if (result === "not_found") {
+    const ok = await removerConvidado(admin.evento.id, token);
+    if (!ok) {
       return NextResponse.json({ erro: "Convidado não encontrado" }, { status: 404 });
     }
     return NextResponse.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao remover convidado:", err);
-    return NextResponse.json(
-      { erro: "Erro ao excluir na planilha. Tente novamente." },
-      { status: 500 }
-    );
+    return NextResponse.json({ erro: "Erro ao excluir. Tente novamente." }, { status: 500 });
   }
 }

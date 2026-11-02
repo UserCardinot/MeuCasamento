@@ -1,37 +1,36 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { getPublicSiteBaseUrl } from "@/lib/mercadopago-shared";
-import { getConviteOgImageAbsoluteUrl } from "@/lib/convite-og-urls";
+import { baseUrlDoEvento, getEventoAtual, toEventoPublico } from "@/lib/evento-atual";
 import { getConviteOpenGraphDescription, getConviteOpenGraphTitle } from "@/lib/convite-whatsapp";
 
-const ogImage = getConviteOgImageAbsoluteUrl();
+export async function generateMetadata(): Promise<Metadata> {
+  const ev = await getEventoAtual();
+  if (!ev) return { title: "Convite" };
+  const evento = toEventoPublico(ev);
+  const base = baseUrlDoEvento(ev);
+  const title = getConviteOpenGraphTitle(evento);
+  const description = getConviteOpenGraphDescription(evento);
+  const ogImage = `${base}/convite/og.png`;
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getPublicSiteBaseUrl()),
-  title: getConviteOpenGraphTitle(),
-  description: getConviteOpenGraphDescription(),
-  openGraph: {
-    title: getConviteOpenGraphTitle(),
-    description: getConviteOpenGraphDescription(),
-    locale: "pt_BR",
-    type: "website",
-    images: [
-      {
-        url: ogImage,
-        width: 1200,
-        height: 630,
-        alt: getConviteOpenGraphTitle(),
-        type: "image/png",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: getConviteOpenGraphTitle(),
-    description: getConviteOpenGraphDescription(),
-    images: [ogImage],
-  },
-};
+  return {
+    metadataBase: new URL(base),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      locale: "pt_BR",
+      type: "website",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title, type: "image/png" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default function ConviteLayout({ children }: { children: ReactNode }) {
   return children;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConvidadoByToken, updateConvidadoRow, upsertPresencaRow } from "@/lib/google";
-import { validateGuestToken } from "@/lib/auth";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { upsertPresenca } from "@/lib/repo/presencas";
+import { atualizarConvidado } from "@/lib/repo/convidados";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -17,10 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { erro: "Dados inválidos" },
-      { status: 400 }
-    );
+    return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   }
 
   const { token, confirmado, mensagem, nomesAcompanhantes } = body;
@@ -36,35 +34,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
-  }
-
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json(
-      { erro: "Configuração do servidor" },
-      { status: 500 }
-    );
   }
 
   try {
     const listaAcompanhantes = nomesAcompanhantes?.trim() ?? "";
 
-    const acao = await upsertPresencaRow(sheetId, token, {
+    const acao = await upsertPresenca(ctx.evento.id, ctx.convidado.id, {
       confirmado,
-      mensagem: mensagem?.trim() || undefined,
-      nomesAcompanhantes: confirmado ? listaAcompanhantes || undefined : undefined,
+      mensagem: mensagem?.trim() ?? "",
+      nomesAcompanhantes: confirmado ? listaAcompanhantes : "",
     });
 
-    const convidado = await getConvidadoByToken(token);
-    if (convidado) {
-      await updateConvidadoRow(sheetId, token, {
-        nome: String(convidado[1] ?? ""),
-        acompanhantes: confirmado ? listaAcompanhantes : String(convidado[2] ?? ""),
-        contato: String(convidado[3] ?? ""),
-        origem: String(convidado[5] ?? ""),
+    if (confirmado) {
+      await atualizarConvidado(ctx.evento.id, ctx.convidado.token, {
+        acompanhantes: listaAcompanhantes,
       });
     }
 

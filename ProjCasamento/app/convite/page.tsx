@@ -1,22 +1,16 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { validateGuestToken } from "@/lib/auth";
-import { getPresencaStatus } from "@/lib/google";
+import { resolverConvidado, pickParam } from "@/lib/convidado-atual";
+import { toEventoPublico } from "@/lib/evento-atual";
+import { getPresenca } from "@/lib/repo/presencas";
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import BannerPresencaConvite from "./BannerPresencaConvite";
-
-export const dynamic = "force-dynamic";
 import ContagemRegressiva from "./ContagemRegressiva";
 import { ConviteCapaTransicao, ConviteLogoImagem } from "./ConviteImagens";
-import { EVENTO, getDataHoraConviteUppercase } from "@/lib/evento";
+import CapaEvento from "./CapaEvento";
+import { getDataHoraConviteUppercase, getEventoTimestamp, nomeDestaque } from "@/lib/evento";
 
-const COLOSSENSES_3_14_NVI =
-  "Acima de tudo, porém, revistam\u2011se do amor, que é o elo perfeito.";
-
-const CONVITE_PIX = {
-  titular: "Nome: Lucas Cardinot da Silva",
-  chave: "Chave: lucascardinot2000@gmail.com",
-} as const;
+export const dynamic = "force-dynamic";
 
 /** Largura máxima do convite (~lateral da folha A4: 210 mm). */
 const inviteColuna =
@@ -28,22 +22,29 @@ const inviteAtalhoCirculoBtn =
 const inviteAtalhoRotulo =
   "mt-2 max-w-[7.5rem] text-center font-invite-caps text-[0.72rem] font-medium uppercase leading-snug tracking-[0.09em] text-invite-olive sm:max-w-[8.5rem] sm:text-[0.78rem] sm:tracking-[0.1em] md:max-w-[9.5rem] md:text-[0.82rem]";
 
-function NomesNoivosTitulo({
-  primeiro,
-  segundo,
-  className = "",
-}: {
-  primeiro: string;
-  segundo: string;
-  className?: string;
-}) {
+function NomeDestaqueTitulo({ nome, className = "" }: { nome: string; className?: string }) {
+  const partes = nome.split(/\s*&\s*/);
   return (
     <h1
       className={`font-nomes-noivos w-full text-center leading-[1] text-invite-olive text-balance text-[clamp(4rem,13vw,7.25rem)] ${className}`}
     >
-      {primeiro} <span className="text-[0.55em] font-normal">&amp;</span> {segundo}
+      {partes.length === 2 ? (
+        <>
+          {partes[0]} <span className="text-[0.55em] font-normal">&amp;</span> {partes[1]}
+        </>
+      ) : (
+        nome
+      )}
     </h1>
   );
+}
+
+function iniciais(nome: string): [string, string] {
+  const letras = nome
+    .split(/\s*&\s*|\s+/)
+    .filter(Boolean)
+    .map((p) => p[0]!.toUpperCase());
+  return [letras[0] ?? "", letras[1] ?? ""];
 }
 
 function Monograma({ a, b }: { a: string; b: string }) {
@@ -202,43 +203,69 @@ function ErroConvite({ mensagem, detalhe }: { mensagem: string; detalhe?: string
   );
 }
 
-/** Rodapé inteiro da página 1 até existir `public/convite/capa.jpg` (ou NEXT_PUBLIC_CONVITE_CAPA). */
-function ConviteCapaPlaceholder() {
+/** Rodapé da página 1 quando o evento não tem `public/eventos/<slug>/capa.png`. */
+function ConviteCapaPlaceholder({ tema }: { tema: string }) {
+  if (tema === "mickey") {
+    return (
+      <div className="flex h-full w-full items-center justify-center py-16" aria-hidden>
+        <div className="relative h-40 w-48 opacity-90">
+          <span className="absolute left-0 top-0 h-[4.5rem] w-[4.5rem] rounded-full bg-black" />
+          <span className="absolute right-0 top-0 h-[4.5rem] w-[4.5rem] rounded-full bg-black" />
+          <span className="absolute bottom-0 left-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-black" />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center border-t border-dashed border-invite-olive/35 bg-invite-olive/[0.04] px-6 py-16">
-      <p className="font-invite-caps max-w-[13rem] text-center text-[0.5rem] font-medium uppercase leading-relaxed tracking-[0.18em] text-invite-olive/55">
-        Foto de transição para a próxima página — coloque capa.jpg em public/convite
-      </p>
+    <div className="flex h-full w-full items-center justify-center py-16" aria-hidden>
+      <span className="h-px w-32 bg-invite-olive/40" />
     </div>
   );
 }
 
 export default async function ConvitePage({ searchParams }: Props) {
   const params = await searchParams;
-  const raw = params?.token;
-  const token = (typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined)
-    ?.toString()
-    .trim();
+  const token = pickParam(params?.token);
 
   if (!token) {
     return <ErroConvite mensagem="Link inválido." detalhe="Acesse através do link do seu convite." />;
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return (
       <ErroConvite
         mensagem="Link inválido ou expirado."
-        detalhe="Entre em contato com os noivos se acredita que isso é um erro."
+        detalhe="Fale com quem enviou o convite se acredita que isso é um erro."
       />
     );
   }
 
-  const presenca = await getPresencaStatus(token);
+  const evento = toEventoPublico(ctx.evento);
+  const presenca = await getPresenca(ctx.convidado.id);
   const respondeuPresenca = presenca !== null;
   const presencaConfirmada = presenca?.confirmado === true;
 
-  const { primeiro, segundo, monograma } = EVENTO.noivos;
+  if (evento.tipo === "so_presentes") {
+    return (
+      <CapaEvento
+        evento={evento}
+        token={ctx.convidado.token}
+        nomeConvidado={ctx.convidado.nome}
+        respondeuPresenca={respondeuPresenca}
+        presencaConfirmada={presencaConfirmada}
+      />
+    );
+  }
+
+  const nome = nomeDestaque(evento);
+  const [ini1, ini2] = iniciais(nome);
+  const dataHora = getDataHoraConviteUppercase(evento);
+  const alvo = getEventoTimestamp(evento);
+  const pix = evento.pixChave
+    ? { titular: `Nome: ${evento.pixNome || nome}`, chave: `Chave: ${evento.pixChave}` }
+    : null;
+
   return (
     <InvitePageShell className="pb-[max(2rem,env(safe-area-inset-bottom,0px))] sm:pb-10">
       <div className={`${inviteColuna} relative pb-6 sm:pb-8`}>
@@ -259,23 +286,21 @@ export default async function ConvitePage({ searchParams }: Props) {
                 <header className="flex w-full shrink-0 flex-col items-center gap-3 sm:gap-4 md:gap-5">
                   <div className="-translate-y-7 sm:-translate-y-8 md:-translate-y-10">
                     <ConviteLogoImagem
-                      alt={`Casamento ${primeiro} & ${segundo}`}
-                      fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+                      slug={evento.slug}
+                      alt={evento.titulo || nome}
+                      fallback={<Monograma a={ini1} b={ini2} />}
                     />
                   </div>
-                  <NomesNoivosTitulo primeiro={primeiro} segundo={segundo} className="w-full px-1" />
+                  <NomeDestaqueTitulo nome={nome} className="w-full px-1" />
                 </header>
                 <div className="mx-auto flex w-full max-w-full shrink-0 translate-y-11 flex-col items-center px-0 pt-6 sm:max-w-xl sm:translate-y-14 sm:pt-7 md:max-w-3xl md:translate-y-16 md:pt-8">
-                  <blockquote className="mx-auto w-full max-w-[30rem] shrink-0 px-1 text-center sm:max-w-xl md:max-w-xl sm:px-3">
-                    <p className="font-heading text-[0.98rem] italic leading-snug text-invite-olive sm:text-[1.22rem] md:text-[1.35rem] sm:leading-relaxed">
-                      {"\u201c"}
-                      {COLOSSENSES_3_14_NVI}
-                      {"\u201d"}
-                    </p>
-                    <footer className="font-invite-caps mt-4 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-invite-olive sm:mt-5 sm:text-[0.78rem] sm:tracking-[0.18em] md:mt-6 md:text-[0.85rem] md:tracking-[0.2em]">
-                      Colossenses 3:14
-                    </footer>
-                  </blockquote>
+                  {evento.mensagemConvite ? (
+                    <blockquote className="mx-auto w-full max-w-[30rem] shrink-0 px-1 text-center sm:max-w-xl md:max-w-xl sm:px-3">
+                      <p className="font-heading whitespace-pre-line text-[0.98rem] italic leading-snug text-invite-olive sm:text-[1.22rem] md:text-[1.35rem] sm:leading-relaxed">
+                        {evento.mensagemConvite}
+                      </p>
+                    </blockquote>
+                  ) : null}
                   <div className="mt-2 flex shrink-0 flex-col items-center text-invite-olive/40 sm:mt-3" aria-hidden>
                     <svg width="20" height="28" viewBox="0 0 24 40" fill="none" className="opacity-70">
                       <path
@@ -291,38 +316,51 @@ export default async function ConvitePage({ searchParams }: Props) {
               </div>
             </div>
             <ConviteCapaTransicao
-              alt={`${primeiro} e ${segundo}`}
-              fallback={<ConviteCapaPlaceholder />}
+              slug={evento.slug}
+              alt={nome}
+              fallback={<ConviteCapaPlaceholder tema={evento.tema} />}
             />
           </section>
 
           <section className="flex flex-col items-center justify-start pt-4 pb-4 sm:pt-5 sm:pb-5 md:pt-6">
             <div className="w-full pb-2 sm:pb-3">
               <ConviteLogoImagem
-                alt={`Casamento ${primeiro} & ${segundo}`}
-                fallback={<Monograma a={monograma[0]} b={monograma[1]} />}
+                slug={evento.slug}
+                alt={evento.titulo || nome}
+                fallback={<Monograma a={ini1} b={ini2} />}
               />
-              <div className="mt-4 mb-5 flex w-full flex-col items-center sm:mt-5 sm:mb-6">
-                <ContagemRegressiva variant="invite" compact />
-              </div>
-              <p className="font-invite-caps mx-auto mt-7 max-w-[18rem] text-center text-[0.88rem] font-bold uppercase leading-relaxed tracking-[0.1em] text-balance text-invite-olive sm:mt-9 sm:max-w-[22rem] sm:text-[0.96rem] sm:tracking-[0.11em] md:max-w-[24rem] md:text-[1.02rem] md:tracking-[0.12em]">
-                Com as bençãos de Deus
-              </p>
+              {alvo > 0 ? (
+                <div className="mt-4 mb-5 flex w-full flex-col items-center sm:mt-5 sm:mb-6">
+                  <ContagemRegressiva alvo={alvo} variant="invite" compact />
+                </div>
+              ) : null}
 
               <p className="font-invite-caps mx-auto mt-8 max-w-[22rem] text-center text-[0.94rem] font-medium uppercase leading-relaxed tracking-[0.13em] text-invite-olive sm:max-w-[26rem] sm:text-[1.05rem] sm:tracking-[0.15em] md:max-w-[28rem] md:text-[1.14rem]">
-                Convidamos você para celebrar o nosso casamento
+                {ctx.convidado.nome.split(/\s+/)[0]}, você está convidado(a)
+                {evento.titulo ? (
+                  <>
+                    <br />
+                    <span className="font-bold">{evento.titulo}</span>
+                  </>
+                ) : null}
               </p>
 
-              <p className="font-invite-caps mt-8 text-center text-[0.9rem] font-medium uppercase leading-relaxed tracking-[0.11em] text-invite-olive sm:text-[1rem] sm:tracking-[0.13em] md:text-[1.08rem]">
-                {getDataHoraConviteUppercase()}
-              </p>
+              {dataHora ? (
+                <p className="font-invite-caps mt-8 text-center text-[0.9rem] font-medium uppercase leading-relaxed tracking-[0.11em] text-invite-olive sm:text-[1rem] sm:tracking-[0.13em] md:text-[1.08rem]">
+                  {dataHora}
+                </p>
+              ) : null}
 
-              <p className="font-invite-caps mt-10 text-center text-[1.12rem] font-bold uppercase tracking-[0.15em] text-invite-olive sm:text-[1.24rem] sm:tracking-[0.17em] md:text-[1.36rem]">
-                {EVENTO.local.nome}
-              </p>
-              <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.84rem] font-medium uppercase leading-relaxed tracking-[0.09em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[0.92rem] md:max-w-[26rem] md:text-[0.98rem]">
-                {EVENTO.local.endereco}
-              </p>
+              {evento.localNome ? (
+                <p className="font-invite-caps mt-10 text-center text-[1.12rem] font-bold uppercase tracking-[0.15em] text-invite-olive sm:text-[1.24rem] sm:tracking-[0.17em] md:text-[1.36rem]">
+                  {evento.localNome}
+                </p>
+              ) : null}
+              {evento.localEndereco ? (
+                <p className="font-invite-caps mx-auto mt-3 max-w-[20rem] text-center text-[0.84rem] font-medium uppercase leading-relaxed tracking-[0.09em] text-invite-olive/95 sm:max-w-[24rem] sm:text-[0.92rem] md:max-w-[26rem] md:text-[0.98rem]">
+                  {evento.localEndereco}
+                </p>
+              ) : null}
 
             </div>
           </section>
@@ -330,7 +368,7 @@ export default async function ConvitePage({ searchParams }: Props) {
           <section className="flex flex-col justify-start pt-2 pb-14 sm:pt-3 sm:pb-16 md:pb-[4.5rem]">
             <div className="w-full py-4 sm:py-6">
               <BannerPresencaConvite
-                token={token}
+                token={ctx.convidado.token}
                 respondeuInicial={respondeuPresenca}
                 confirmadoInicial={presencaConfirmada}
               />
@@ -345,7 +383,7 @@ export default async function ConvitePage({ searchParams }: Props) {
                 >
                   <div
                     className={
-                      EVENTO.local.mapUrl
+                      evento.localMapUrl
                         ? "grid w-full grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-4"
                         : "grid w-full grid-cols-2 gap-x-3 sm:gap-x-5"
                     }
@@ -360,10 +398,10 @@ export default async function ConvitePage({ searchParams }: Props) {
                         <IconePresente />
                       </IconeCirculo>
                     </div>
-                    {EVENTO.local.mapUrl ? (
+                    {evento.localMapUrl ? (
                       <div className="flex min-w-0 justify-center">
                         <IconeCirculo
-                          href={EVENTO.local.mapUrl}
+                          href={evento.localMapUrl}
                           externo
                           rotulo={
                             <>
@@ -377,9 +415,11 @@ export default async function ConvitePage({ searchParams }: Props) {
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex w-full justify-center pt-6 sm:pt-7">
-                    <BlocoPixInformativo titular={CONVITE_PIX.titular} chave={CONVITE_PIX.chave} />
-                  </div>
+                  {pix ? (
+                    <div className="flex w-full justify-center pt-6 sm:pt-7">
+                      <BlocoPixInformativo titular={pix.titular} chave={pix.chave} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

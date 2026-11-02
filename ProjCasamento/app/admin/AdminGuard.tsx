@@ -1,18 +1,24 @@
-import { cookies } from "next/headers";
-import { validateAdminSessionToken } from "@/lib/auth";
+import { getAdminAtual } from "@/lib/admin-sessao";
+import { getEventoAtual } from "@/lib/evento-atual";
 import LoginForm from "./LoginForm";
 import Dashboard from "./Dashboard";
 
 export default async function AdminGuard() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_session")?.value;
-  const isAuthenticated = token ? validateAdminSessionToken(token) : false;
+  const evento = await getEventoAtual();
+  if (!evento) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-stone-50 px-6">
+        <p className="text-sm text-stone-600">Nenhum evento configurado para este endereço.</p>
+      </main>
+    );
+  }
 
-  if (!isAuthenticated) {
+  const admin = await getAdminAtual();
+  if (!admin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-stone-100/90 via-stone-50 to-white px-6 py-24 sm:px-12">
         <div className="w-full max-w-sm">
-          <LoginForm />
+          <LoginForm titulo={evento.titulo || evento.anfitrioes || "Painel do convite"} />
         </div>
       </main>
     );

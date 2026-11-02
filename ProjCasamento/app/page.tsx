@@ -1,16 +1,37 @@
-export default function Home() {
+import { InvitePageShell } from "@/components/invite/InvitePageShell";
+import { getEventoAtual } from "@/lib/evento-atual";
+import { formatarDataEvento, nomeDestaque } from "@/lib/evento";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const evento = await getEventoAtual();
+
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 lg:px-24 py-24 bg-[#FAFAFA]">
-      <div className="max-w-lg text-center space-y-8">
-        <p className="font-sans text-stone-400 text-xs uppercase tracking-[0.2em]">Lucas & Beatriz</p>
-        <h1 className="font-heading text-4xl sm:text-6xl font-light text-stone-900 tracking-tight">
-          Nosso dia especial
-        </h1>
-        <p className="font-sans text-stone-600 text-lg leading-relaxed">
-          Acesse através do link do seu convite para confirmar presença, ver
-          presentes e muito mais.
+    <InvitePageShell className="flex flex-col items-center justify-center px-6 py-24">
+      <div className="max-w-lg space-y-6 text-center">
+        {evento ? (
+          <>
+            {evento.titulo ? (
+              <p className="font-invite-caps text-sm uppercase tracking-[0.24em] text-invite-olive/80">
+                {evento.titulo}
+              </p>
+            ) : null}
+            <h1 className="font-nomes-noivos text-[clamp(3.5rem,14vw,5.5rem)] leading-none text-invite-olive">
+              {nomeDestaque(evento)}
+            </h1>
+            {formatarDataEvento(evento) ? (
+              <p className="font-invite-caps text-base uppercase tracking-[0.12em] text-invite-olive">
+                {formatarDataEvento(evento)}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+        <p className="font-sans text-lg leading-relaxed text-invite-olive/85">
+          Para confirmar presença, ver a lista de presentes e deixar recados, abra o link
+          personalizado que você recebeu no WhatsApp.
         </p>
       </div>
-    </main>
+    </InvitePageShell>
   );
 }

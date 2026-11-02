@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { validateGuestToken } from "@/lib/auth";
-import { getConvidadoByToken } from "@/lib/google";
-import { EVENTO } from "@/lib/evento";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { nomeDestaque } from "@/lib/evento";
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import RecadosClient from "./RecadosClient";
 import {
@@ -42,25 +41,24 @@ export default async function RecadosPage({ searchParams }: Props) {
     return <ErroRecados mensagem="Link inválido." detalhe="Acesse através do link do seu convite." />;
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return (
       <ErroRecados
         mensagem="Link inválido ou expirado."
-        detalhe="Entre em contato com os noivos se acredita que isso é um erro."
+        detalhe="Fale com quem enviou o convite se acredita que isso é um erro."
       />
     );
   }
 
-  const convidado = await getConvidadoByToken(token);
-  const nome = convidado?.[1] || "Convidado";
-  const { primeiro, segundo } = EVENTO.noivos;
+  const nome = ctx.convidado.nome || "Convidado";
+  const destaque = nomeDestaque(ctx.evento);
 
   return (
     <InvitePageShell className="py-8 sm:py-10 md:py-12 lg:py-16">
       <div className={`${presentesLayoutLoja} w-full`}>
         <Link href={`/convite?token=${encodeURIComponent(token)}`} className={presentesLinkVoltar}>
-          ← Voltar ao convite
+          ← Voltar
         </Link>
 
         <div className={`${presentesCard} px-4 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12`}>
@@ -72,11 +70,10 @@ export default async function RecadosPage({ searchParams }: Props) {
               Olá, {nome}
             </h1>
             <p className="font-invite-caps mt-2 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-invite-olive sm:text-xs">
-              {primeiro} & {segundo}
+              {destaque}
             </p>
             <p className="font-sans mx-auto mt-4 max-w-md text-sm leading-relaxed text-invite-olive/80">
-              Deixe uma mensagem carinhosa para os noivos. Ela aparece no mural abaixo para todos os
-              convidados.
+              Deixe uma mensagem carinhosa. Ela aparece no mural abaixo para todos os convidados.
             </p>
           </header>
 

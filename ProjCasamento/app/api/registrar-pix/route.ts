@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendToSheet } from "@/lib/google";
-import { validateGuestToken } from "@/lib/auth";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { registrarPresenteRecebido } from "@/lib/repo/presentes-recebidos";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatPresentesRegistro, parsePresentesBody } from "@/lib/presentes-checkout";
 
@@ -33,17 +33,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Selecione ao menos um presente." }, { status: 400 });
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
-  }
-
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json(
-      { erro: "Configuração do servidor" },
-      { status: 500 }
-    );
   }
 
   if (valor && typeof valor === "string") {
@@ -56,10 +48,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const data = new Date().toLocaleString("pt-BR");
-    await appendToSheet(sheetId, "Presentes!A:D", [
-      [token, formatPresentesRegistro(nomes), valor || "", data],
-    ]);
+    await registrarPresenteRecebido({
+      eventoId: ctx.evento.id,
+      convidadoToken: ctx.convidado.token,
+      convidadoNome: ctx.convidado.nome,
+      presente: formatPresentesRegistro(nomes),
+      valor: valor || "",
+      metodo: "pix",
+    });
     return NextResponse.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao registrar Pix:", err);

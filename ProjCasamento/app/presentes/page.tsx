@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import Link from "next/link";
-import { validateGuestToken } from "@/lib/auth";
-import { getConvidadoByToken, getPresenteRegistrado, getCatalogoPresentes } from "@/lib/google";
-import { EVENTO } from "@/lib/evento";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { getCatalogoPublico } from "@/lib/repo/catalogo";
+import { getUltimoPresenteDoConvidado } from "@/lib/repo/presentes-recebidos";
+import { nomeDestaque } from "@/lib/evento";
 import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
 import ConfirmarRetornoMP from "./ConfirmarRetornoMP";
 import ListaPresentesConvidado from "./ListaPresentesConvidado";
@@ -70,15 +71,16 @@ export default async function PresentesPage({ searchParams }: Props) {
     return <ErroPresentes mensagem="Link inválido." detalhe="Acesse através do link do seu convite." />;
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return (
       <ErroPresentes
         mensagem="Link inválido ou expirado."
-        detalhe="Entre em contato com os noivos se acredita que isso é um erro."
+        detalhe="Fale com quem enviou o convite se acredita que isso é um erro."
       />
     );
   }
+  const { evento, convidado } = ctx;
 
   const paymentId =
     pickParam(params?.payment_id) || pickParam(params?.collection_id);
@@ -89,7 +91,7 @@ export default async function PresentesPage({ searchParams }: Props) {
     mpPaymentStatus === "approved" ||
     mpPaymentStatus === "success";
   if (deveRegistrar && (paymentId || externalReference)) {
-    const reg = await registrarPagamentoMercadoPago({
+    const reg = await registrarPagamentoMercadoPago(evento, {
       paymentId,
       externalReference,
     });
@@ -98,19 +100,18 @@ export default async function PresentesPage({ searchParams }: Props) {
     }
   }
 
-  const [convidado, presenteRegistrado, catalogo] = await Promise.all([
-    getConvidadoByToken(token),
-    getPresenteRegistrado(token),
-    getCatalogoPresentes(),
+  const [presenteRegistrado, catalogo] = await Promise.all([
+    getUltimoPresenteDoConvidado(evento.id, convidado.token),
+    getCatalogoPublico(evento.id),
   ]);
-  const nome = convidado?.[1] || "Convidado";
-  const { primeiro, segundo } = EVENTO.noivos;
+  const nome = convidado.nome || "Convidado";
+  const destaque = nomeDestaque(evento);
 
   return (
     <InvitePageShell className="py-8 sm:py-10 md:py-12">
       <div className={`${presentesLayoutLoja} w-full`}>
         <Link href={`/convite?token=${encodeURIComponent(token)}`} className={presentesLinkVoltar}>
-          ← Voltar ao convite
+          ← Voltar
         </Link>
 
         <div className={`${presentesCard} px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-11`}>
@@ -122,7 +123,7 @@ export default async function PresentesPage({ searchParams }: Props) {
               Olá, {nome}
             </h1>
             <p className="font-invite-caps mt-2 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-invite-olive sm:text-xs">
-              {primeiro} & {segundo}
+              {destaque}
             </p>
             <p className="font-sans mx-auto mt-3 max-w-xl text-sm leading-relaxed text-invite-olive/80 lg:mx-0">
               Escolha os itens na lista e abra o carrinho pelo ícone no topo — Pix ou cartão.
@@ -133,8 +134,8 @@ export default async function PresentesPage({ searchParams }: Props) {
             <AvisoPagamento tipo="success">
               <p className="font-medium">Pagamento aprovado no Mercado Pago.</p>
               <p className="mt-2 text-invite-olive/85">
-                Sua contribuição é registrada na planilha automaticamente. Se o histórico dos noivos ainda não
-                atualizou, aguarde alguns segundos ou recarregue esta página.
+                Seu presente é registrado automaticamente. Se ainda não aparecer, aguarde alguns segundos ou
+                recarregue esta página.
               </p>
               <Suspense fallback={null}>
                 <ConfirmarRetornoMP token={token} mpStatus={mpStatus} />

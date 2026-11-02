@@ -1,10 +1,10 @@
 /** Sugestões para o campo “origem / grupo” do convidado (admin). */
 export const ORIGEM_CONVIDADO_SUGESTOES = [
+  "Família",
+  "Amigos",
   "Igreja",
-  "Família da noiva",
-  "Família do noivo",
-  "Amigos da noiva",
-  "Amigos do noivo",
+  "Escola / creche",
   "Trabalho / faculdade",
+  "Vizinhos",
   "Outros",
 ] as const;

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { validateGuestToken } from "@/lib/auth";
-import { getConvidadoByToken, getPresencaStatus } from "@/lib/google";
-import { EVENTO } from "@/lib/evento";
+import { resolverConvidado, pickParam } from "@/lib/convidado-atual";
+import { getPresenca } from "@/lib/repo/presencas";
+import { nomeDestaque } from "@/lib/evento";
 import { parseAcompanhantesLista } from "@/lib/acompanhantes";
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import FormConfirmacao from "./FormConfirmacao";
@@ -28,34 +28,29 @@ function ErroConfirmacao({ mensagem, detalhe }: { mensagem: string; detalhe?: st
 
 export default async function ConfirmacaoPage({ searchParams }: Props) {
   const params = await searchParams;
-  const raw = params?.token;
-  const token = (typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined)
-    ?.toString()
-    .trim();
+  const token = pickParam(params?.token);
 
   if (!token) {
     return <ErroConfirmacao mensagem="Link inválido." detalhe="Acesse através do link do seu convite." />;
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return (
       <ErroConfirmacao
         mensagem="Link inválido ou expirado."
-        detalhe="Entre em contato com os noivos se acredita que isso é um erro."
+        detalhe="Fale com quem enviou o convite se acredita que isso é um erro."
       />
     );
   }
 
-  const [convidado, presenca] = await Promise.all([
-    getConvidadoByToken(token),
-    getPresencaStatus(token),
-  ]);
-  const nome = convidado?.[1] || "Convidado";
-  const { primeiro, segundo } = EVENTO.noivos;
+  const { convidado, evento } = ctx;
+  const presenca = await getPresenca(convidado.id);
+  const nome = convidado.nome || "Convidado";
+  const destaque = nomeDestaque(evento);
   const confirmadoInicial = presenca === null ? undefined : presenca.confirmado ? "sim" : "nao";
   const mensagemInicial = presenca?.mensagem?.trim() || undefined;
-  const acompanhantesConvite = parseAcompanhantesLista(convidado?.[2] ?? "");
+  const acompanhantesConvite = parseAcompanhantesLista(convidado.acompanhantes);
   const acompanhantesSalvos = presenca?.nomesAcompanhantes?.trim()
     ? parseAcompanhantesLista(presenca.nomesAcompanhantes)
     : [];
@@ -69,7 +64,7 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
           href={`/convite?token=${encodeURIComponent(token)}`}
           className="font-invite-caps mb-8 inline-block text-[0.68rem] font-medium uppercase tracking-[0.2em] text-invite-olive/75 transition-colors hover:text-invite-olive sm:mb-10 sm:text-xs md:text-sm"
         >
-          ← Voltar ao convite
+          ← Voltar
         </Link>
 
         <div className="border border-invite-olive/40 bg-invite-cream/75 px-6 py-10 shadow-sm sm:px-10 sm:py-12 md:px-12 md:py-14 lg:px-16 lg:py-16">
@@ -81,7 +76,7 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
               Olá, {nome}
             </h1>
             <p className="font-invite-caps mt-3 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-invite-olive sm:text-[0.72rem] md:mt-4 md:text-sm md:tracking-[0.24em]">
-              {primeiro} & {segundo}
+              {destaque}
             </p>
           </header>
 

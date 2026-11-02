@@ -73,7 +73,7 @@ export default function FormPix({ token, presentesNomes, totalSugerido }: Props)
         2. Confirme após pagar
       </p>
       <p className="font-sans text-sm leading-relaxed text-invite-olive/75">
-        Depois de transferir, clique no botão abaixo para avisar os noivos.
+        Depois de transferir, clique no botão abaixo para avisar que você presenteou.
       </p>
 
       <div>

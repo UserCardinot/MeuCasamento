@@ -103,7 +103,7 @@ export default function FormMercadoPago({ token, presentesNomes, totalSugerido }
           {resumo.taxa > 0 && (
             <p className="mt-2 text-xs leading-relaxed text-invite-olive/65">
               O valor do presente na lista é R$ {formatPrecoBRL(resumo.subtotal)}. No cartão incluímos a
-              tarifa estimada do Mercado Pago para os noivos receberem esse valor.
+              tarifa estimada do Mercado Pago para que esse valor chegue integral.
             </p>
           )}
         </div>

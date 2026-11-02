@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
-import { validateGuestToken } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { getCatalogoPresentes } from "@/lib/google";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { baseUrlDoEvento } from "@/lib/evento-atual";
+import { getMpConfigEvento } from "@/lib/mercadopago-evento";
+import { getCatalogoPublico } from "@/lib/repo/catalogo";
 import {
   buildMercadoPagoLineItems,
   parsePresentesBody,
@@ -12,14 +14,11 @@ import {
   buildExternalReference,
   canUseMercadoPagoAutoReturn,
   formatMercadoPagoApiError,
-  getMercadoPagoTaxaCartaoPercent,
-  getCheckoutBaseUrl,
   parseCatalogPreco,
   isMercadoPagoSandboxCheckoutUrl,
   mercadoPagoCollectorIdFromAccessToken,
   mercadoPagoCollectorIdFromPreferenceId,
   resolveMercadoPagoInitPoint,
-  shouldUseMercadoPagoSandbox,
 } from "@/lib/mercadopago-shared";
 
 export const dynamic = "force-dynamic";
@@ -34,14 +33,6 @@ function itemIdFromTitle(title: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
-  if (!accessToken) {
-    return NextResponse.json(
-      { erro: "Pagamento com cartão não configurado (MERCADOPAGO_ACCESS_TOKEN)." },
-      { status: 503 }
-    );
-  }
-
   const ip = getClientIp(request);
   const { allowed } = checkRateLimit(ip);
   if (!allowed) {
@@ -68,18 +59,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Selecione ao menos um presente." }, { status: 400 });
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const catalog = await getCatalogoPresentes();
+  const mp = getMpConfigEvento(ctx.evento);
+  if (!mp) {
+    return NextResponse.json(
+      { erro: "Pagamento com cartão não está disponível. Use o Pix." },
+      { status: 503 }
+    );
+  }
+  const { accessToken, sandbox } = mp;
+
+  const catalog = await getCatalogoPublico(ctx.evento.id);
   const resolved = resolvePresentesCatalogItems(catalog, nomes);
   if ("error" in resolved) {
     return NextResponse.json({ erro: resolved.error }, { status: 400 });
   }
 
-  const taxaCartaoPercent = getMercadoPagoTaxaCartaoPercent();
+  const taxaCartaoPercent = mp.taxaPercent;
   const lineItems = buildMercadoPagoLineItems(resolved.items, itemIdFromTitle, taxaCartaoPercent);
   if ("error" in lineItems) {
     return NextResponse.json({ erro: lineItems.error }, { status: 400 });
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: msg }, { status: 400 });
   }
 
-  const base = getCheckoutBaseUrl(request);
+  const base = baseUrlDoEvento(ctx.evento);
   const tokenQ = encodeURIComponent(token.trim());
   const useAutoReturn = canUseMercadoPagoAutoReturn(base);
   const backUrls = {
@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
     failure: `${base}/presentes?token=${tokenQ}&mp=failure`,
   };
 
-  const sandbox = shouldUseMercadoPagoSandbox(accessToken);
   const testBuyerEmail = process.env.MERCADOPAGO_TEST_BUYER_EMAIL?.trim();
 
   const client = new MercadoPagoConfig({ accessToken });
@@ -118,7 +117,7 @@ export async function POST(request: NextRequest) {
       body: {
         items: lineItems.items,
         external_reference: externalReference,
-        statement_descriptor: "CASAMENTO",
+        statement_descriptor: "PRESENTE",
         payment_methods: {
           installments: 12,
           default_installments: 1,
@@ -142,7 +141,7 @@ export async function POST(request: NextRequest) {
       console.error("Mercado Pago: preferência sem init_point", result.id, { sandbox });
       const erroSandbox =
         sandbox
-          ? "Checkout de teste indisponível. Confira MERCADOPAGO_ACCESS_TOKEN (credencial de teste) e MERCADOPAGO_SANDBOX=true."
+          ? "Checkout de teste indisponível. Confira o Access Token de teste nas Configurações do painel."
           : "Não foi possível abrir o checkout. Tente novamente.";
       return NextResponse.json({ erro: erroSandbox }, { status: 502 });
     }
@@ -152,7 +151,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           erro:
-            "Configuração de teste incorreta (URL de produção). Use Access Token de teste e MERCADOPAGO_SANDBOX=true.",
+            "Configuração de teste incorreta (URL de produção). Use o Access Token de teste no modo teste.",
         },
         { status: 502 }
       );
@@ -161,16 +160,6 @@ export async function POST(request: NextRequest) {
     const collectorId =
       mercadoPagoCollectorIdFromPreferenceId(result.id) ??
       mercadoPagoCollectorIdFromAccessToken(accessToken);
-    const esperadoProducao = process.env.MERCADOPAGO_PRODUCAO_COLLECTOR_ID?.trim();
-
-    if (!sandbox && esperadoProducao && collectorId && collectorId !== esperadoProducao) {
-      return NextResponse.json(
-        {
-          erro: `Este site está com Access Token de TESTE (vendedor ${collectorId}). No Vercel Production use o token de PRODUÇÃO (vendedor ${esperadoProducao}) e MERCADOPAGO_SANDBOX=false. Pagamento com conta real só funciona com vendedor de produção.`,
-        },
-        { status: 400 }
-      );
-    }
 
     const total = lineItems.items.reduce((s, it) => s + it.unit_price, 0);
     const subtotal = Math.round(subtotalCatalogo * 100) / 100;

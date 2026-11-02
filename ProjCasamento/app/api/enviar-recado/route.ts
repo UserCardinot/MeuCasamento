@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendToSheet } from "@/lib/google";
-import { validateGuestToken } from "@/lib/auth";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { criarRecado } from "@/lib/repo/recados";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -30,23 +30,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Mensagem obrigatória (máx. 500 caracteres)" }, { status: 400 });
   }
 
-  const isValid = await validateGuestToken(token);
-  if (!isValid) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const { getConvidadoByToken } = await import("@/lib/google");
-  const convidado = await getConvidadoByToken(token);
-  const nome = convidado?.[1] || "Anônimo";
-
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
-
   try {
-    const data = new Date().toLocaleString("pt-BR");
-    await appendToSheet(sheetId, "Recados!A:D", [[token, nome, msg, data]]);
+    await criarRecado({
+      eventoId: ctx.evento.id,
+      convidadoToken: ctx.convidado.token,
+      nome: ctx.convidado.nome || "Anônimo",
+      mensagem: msg,
+    });
     return NextResponse.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao salvar recado:", err);

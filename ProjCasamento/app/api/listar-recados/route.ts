@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFromSheet } from "@/lib/google";
-import { validateGuestToken } from "@/lib/auth";
+import { resolverConvidado } from "@/lib/convidado-atual";
+import { listarRecados } from "@/lib/repo/recados";
+import { formatarDataHoraRegistro } from "@/lib/evento";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get("token");
-  if (!token || !(await validateGuestToken(token))) {
+  const ctx = await resolverConvidado(request.nextUrl.searchParams.get("token"));
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  if (!sheetId) {
-    return NextResponse.json({ erro: "Configuração do servidor" }, { status: 500 });
-  }
-
   try {
-    const rows = await readFromSheet(sheetId, "Recados!A2:D");
-    const recados = (rows as (string | number)[][]).map((row) => ({
-      nome: String(row[1] ?? "Anônimo"),
-      mensagem: String(row[2] ?? ""),
-      data: String(row[3] ?? ""),
+    const rows = await listarRecados(ctx.evento.id);
+    const recados = rows.map((r) => ({
+      nome: r.nome || "Anônimo",
+      mensagem: r.mensagem,
+      data: formatarDataHoraRegistro(r.criadoEm),
     }));
     return NextResponse.json({ recados });
   } catch (err) {

@@ -1,5 +1,3 @@
-import { EVENTO } from "@/lib/evento";
-
 export type PixRecebedorConfig = {
   chave: string;
   nome: string;
@@ -63,25 +61,20 @@ export function parsePixFromCopiaCola(copiaCola: string): PixRecebedorConfig | n
   return { chave, nome, cidade };
 }
 
-export function getPixRecebedorConfig(): PixRecebedorConfig | null {
-  const chaveEnv = process.env.PIX_CHAVE?.trim();
-  const nomeEnv = process.env.PIX_RECEBEDOR_NOME?.trim();
-  const cidadeEnv = process.env.PIX_CIDADE?.trim();
-  const nomePadrao = `${EVENTO.noivos.primeiro} e ${EVENTO.noivos.segundo}`;
-  const cidadePadrao = EVENTO.local.cidade;
-
-  if (chaveEnv) {
-    return {
-      chave: chaveEnv,
-      nome: normalizePixText(nomeEnv || nomePadrao, 25),
-      cidade: normalizePixText(cidadeEnv || cidadePadrao, 15),
-    };
-  }
-
-  const copia = process.env.PIX_COPIA_COLA?.trim();
-  if (copia) return parsePixFromCopiaCola(copia);
-
-  return null;
+export function getPixRecebedorConfig(evento: {
+  pixChave: string;
+  pixNome: string;
+  pixCidade: string;
+  anfitrioes: string;
+  localCidade: string;
+}): PixRecebedorConfig | null {
+  const chave = evento.pixChave.trim();
+  if (!chave) return null;
+  return {
+    chave,
+    nome: normalizePixText(evento.pixNome.trim() || evento.anfitrioes || "Recebedor", 25),
+    cidade: normalizePixText(evento.pixCidade.trim() || evento.localCidade || "Brasil", 15),
+  };
 }
 
 /**

@@ -2,61 +2,11 @@
  * URLs públicas e formato de external_reference (preferência ↔ pagamento)
  */
 
-function toHttpsBase(hostOrUrl: string): string {
-  const trimmed = hostOrUrl.trim().replace(/\/$/, "");
-  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/\/$/, "");
-  return `https://${trimmed.replace(/^https?:\/\//i, "")}`;
-}
-
-/** URL pública do site (retorno MP, webhooks). Vercel: defina NEXT_PUBLIC_SITE_URL ou usa *.vercel.app. */
-export function getPublicSiteBaseUrl(): string {
-  const explicit =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_BASE_URL?.trim();
-  if (explicit) return toHttpsBase(explicit);
-
-  const vercelProduction = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (vercelProduction) return toHttpsBase(vercelProduction);
-
-  const vercelDeploy = process.env.VERCEL_URL?.trim();
-  if (vercelDeploy) return toHttpsBase(vercelDeploy);
-
-  return "http://localhost:3000";
-}
-
-function isLocalHostname(hostname: string): boolean {
-  const h = hostname.toLowerCase();
-  return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
-}
-
-/**
- * Base URL para back_urls da preferência.
- * Em dev no localhost, ignora NEXT_PUBLIC_SITE_URL (evita misturar TEST + URL do Vercel).
- */
-export function getCheckoutBaseUrl(request?: { headers: Headers }): string {
-  const host =
-    request?.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
-    request?.headers.get("host")?.trim();
-  if (host && process.env.NODE_ENV === "development") {
-    const hostname = host.split(":")[0];
-    if (isLocalHostname(hostname)) {
-      const proto =
-        request?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
-      return `${proto}://${host}`.replace(/\/$/, "");
-    }
-  }
-  return getPublicSiteBaseUrl();
-}
-
 /** Legado: alguns tokens antigos começam com TEST- */
 export function isMercadoPagoTestToken(accessToken: string): boolean {
   return accessToken.trim().startsWith("TEST-");
 }
 
-/**
- * Sandbox (checkout de teste): MERCADOPAGO_SANDBOX=true no .env.local.
- * Teste e produção no painel MP usam APP_USR- — a flag evita confusão.
- */
 /** ID numérico do vendedor no final do Access Token (ex.: ...-3373866106). */
 export function mercadoPagoCollectorIdFromAccessToken(accessToken: string): string | null {
   const m = accessToken.trim().match(/-(\d+)$/);
@@ -69,25 +19,15 @@ export function mercadoPagoCollectorIdFromPreferenceId(preferenceId: string | un
   return m?.[1] ?? null;
 }
 
-/**
- * Percentual embutido no checkout com cartão (repasse da tarifa MP).
- * MERCADOPAGO_TAXA_PERCENT=0 desativa. Padrão: 5.
- */
-export function getMercadoPagoTaxaCartaoPercent(): number {
-  const raw = process.env.MERCADOPAGO_TAXA_PERCENT?.trim();
-  if (raw === "0" || raw?.toLowerCase() === "false") return 0;
-  if (raw) {
-    const n = Number(String(raw).replace(",", "."));
+/** Percentual embutido no checkout com cartão (repasse da tarifa MP). "0" desativa. Padrão: 5. */
+export function parseTaxaCartaoPercent(raw: string | undefined): number {
+  const t = raw?.trim();
+  if (t === "0" || t?.toLowerCase() === "false") return 0;
+  if (t) {
+    const n = Number(t.replace(",", "."));
     if (Number.isFinite(n) && n >= 0 && n < 50) return Math.round(n * 100) / 100;
   }
   return 5;
-}
-
-export function shouldUseMercadoPagoSandbox(accessToken: string): boolean {
-  const flag = process.env.MERCADOPAGO_SANDBOX?.trim().toLowerCase();
-  if (flag === "true" || flag === "1" || flag === "yes") return true;
-  if (flag === "false" || flag === "0" || flag === "no") return false;
-  return isMercadoPagoTestToken(accessToken);
 }
 
 export function resolveMercadoPagoInitPoint(

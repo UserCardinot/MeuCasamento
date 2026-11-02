@@ -57,10 +57,10 @@ export default function ConfirmarRetornoMP({ token, mpStatus }: Props) {
           return;
         }
 
-        setMensagem(data.erro || "Não foi possível registrar automaticamente. Avise os noivos com o comprovante.");
+        setMensagem(data.erro || "Não foi possível registrar automaticamente. Avise quem te convidou e mostre o comprovante.");
       } catch {
         if (!cancelado) {
-          setMensagem("Erro de conexão ao registrar. Recarregue a página ou avise os noivos.");
+          setMensagem("Erro de conexão ao registrar. Recarregue a página ou avise quem te convidou.");
         }
       }
     })();

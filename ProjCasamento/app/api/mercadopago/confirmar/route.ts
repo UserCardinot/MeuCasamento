@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateGuestToken } from "@/lib/auth";
+import { resolverConvidado } from "@/lib/convidado-atual";
 import { registrarPagamentoMercadoPago } from "@/lib/mercadopago-registrar-pagamento";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-/** Confirma pagamento ao voltar do checkout (localhost e produção). */
+/** Confirma pagamento ao voltar do checkout. */
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const { allowed } = checkRateLimit(ip);
@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!(await validateGuestToken(token))) {
+  const ctx = await resolverConvidado(token);
+  if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
   }
 
-  const result = await registrarPagamentoMercadoPago({
+  const result = await registrarPagamentoMercadoPago(ctx.evento, {
     paymentId,
     externalReference,
   });

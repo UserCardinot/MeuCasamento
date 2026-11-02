@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getEventoTimestamp } from "@/lib/evento";
 
-type Props = { variant?: "default" | "invite"; compact?: boolean };
+type Props = { alvo: number; variant?: "default" | "invite"; compact?: boolean };
 
-export default function ContagemRegressiva({ variant = "default", compact = false }: Props) {
+export default function ContagemRegressiva({ alvo, variant = "default", compact = false }: Props) {
   const [diff, setDiff] = useState<number | null>(null);
-  const alvo = getEventoTimestamp();
 
   useEffect(() => {
     function atualizar() {

@@ -2,80 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Temas por evento (atributo data-tema no <body>).
+ * As classes invite-olive / invite-cream do Tailwind leem estas variáveis (canais RGB).
+ */
+:root,
+[data-tema="oliva"] {
+  --invite-olive: 75 83 32;
+  --invite-cream: 240 235 225;
+  --invite-accent: 184 134 11;
+  --invite-shell-overlay: rgba(240, 235, 225, 0.82);
+  --invite-shell-texture: url("/convite/texture-telado-markatto.png");
+}
+
+[data-tema="mickey"] {
+  --invite-olive: 200 16 46;
+  --invite-cream: 255 248 225;
+  --invite-accent: 255 200 0;
+  --invite-shell-overlay: rgba(255, 248, 225, 0.9);
+  --invite-shell-texture: radial-gradient(circle at 20px 20px, rgba(0, 0, 0, 0.07) 6px, transparent 7px);
+}
+
 /* Luxurious Script (carregamento via <link> no layout) — garante uso nos nomes do convite */
 .font-nomes-noivos {
   font-family: "Luxurious Script", ui-serif, cursive;
 }
 
-/*
- * Telado markatto/linho — tile da referência (public/convite/texture-telado-markatto.png).
- * Uma camada só: creme + foto suavizada (sem grade SVG, sem manchas, sem camada fixa).
- */
+[data-tema="mickey"] .font-nomes-noivos {
+  font-family: var(--font-mickey-display), ui-rounded, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 .invite-page-shell {
-  background-color: #f0ebe1;
+  background-color: rgb(var(--invite-cream));
   background-image:
-    linear-gradient(rgba(240, 235, 225, 0.82), rgba(240, 235, 225, 0.82)),
-    url("/convite/texture-telado-markatto.png");
+    linear-gradient(var(--invite-shell-overlay), var(--invite-shell-overlay)),
+    var(--invite-shell-texture);
   background-size: 100% 100%, 440px 440px;
   background-repeat: no-repeat, repeat;
 }
 
-@keyframes midiaFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes midiaPanel {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes midiaLogoIn {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes midiaRecPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(90, 74, 48, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 0 18px rgba(90, 74, 48, 0);
-  }
-}
-
-/* Atmosfera da página /midia: vinheta suave sobre o telado do convite */
-.midia-atmosphere::before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -5%, rgba(255, 252, 245, 0.75), transparent 55%),
-    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(74, 64, 48, 0.06), transparent 50%);
-  z-index: 0;
-}
-
-.midia-atmosphere > * {
-  position: relative;
-  z-index: 1;
+[data-tema="mickey"] .invite-page-shell {
+  background-size: 100% 100%, 40px 40px;
 }
