@@ -38,9 +38,8 @@ services:
       - POSTGRES_USER=casamento
       - POSTGRES_DB=casamento
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
-    # Só localhost (para túnel SSH); a app acessa pela rede interna do compose
     ports:
-      - "127.0.0.1:5434:5432"
+      - "5434:5432"
     volumes:
       - casamento_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
