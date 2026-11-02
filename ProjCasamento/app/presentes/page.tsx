@@ -82,6 +82,10 @@ export default async function PresentesPage({ searchParams }: Props) {
   }
   const { evento, convidado } = ctx;
 
+  if (!evento.listaPresentes) {
+    return <ErroPresentes mensagem="Este evento não tem lista de presentes." detalhe="Sua presença é o nosso maior presente!" />;
+  }
+
   const paymentId =
     pickParam(params?.payment_id) || pickParam(params?.collection_id);
   const externalReference = pickParam(params?.external_reference);

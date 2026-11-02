@@ -6,8 +6,10 @@ import Link from "next/link";
 import { SimboloMickey } from "@/components/invite/SimboloMickey";
 import {
   diasAteEvento,
+  formatarPrazoConfirmacao,
   getDataHoraConviteUppercase,
   nomeDestaque,
+  prazoConfirmacaoEncerrado,
   type EventoPublico,
 } from "@/lib/evento";
 
@@ -137,11 +139,20 @@ export default function ConviteMickey({
   const t = encodeURIComponent(token);
   const temCapa = existsSync(path.join(process.cwd(), "public", "eventos", evento.slug, "capa.png"));
 
+  const prazo = formatarPrazoConfirmacao(evento);
+  const encerrado = prazoConfirmacaoEncerrado(evento);
+
   const confirmar = presencaConfirmada
     ? { rotulo: "Presença confirmada", cls: "bg-[#22A04B] text-white" }
-    : respondeuPresenca
-      ? { rotulo: "Rever presença", cls: "bg-invite-olive text-white" }
-      : { rotulo: "Confirmar presença", cls: "bg-invite-olive text-white" };
+    : encerrado
+      ? { rotulo: "Confirmações encerradas", cls: "bg-zinc-300 text-zinc-700" }
+      : respondeuPresenca
+        ? { rotulo: "Rever presença", cls: "bg-invite-olive text-white" }
+        : { rotulo: "Confirmar presença", cls: "bg-invite-olive text-white" };
+
+  const secundarios = 1 + (evento.listaPresentes ? 1 : 0) + (evento.localMapUrl ? 1 : 0);
+  const gradeCols = ({ 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" } as const)[secundarios as 1 | 2 | 3];
+  const spanTodas = ({ 1: "col-span-1", 2: "col-span-2", 3: "col-span-3" } as const)[secundarios as 1 | 2 | 3];
 
   return (
     <main className="invite-page-shell flex h-[100svh] w-full items-center justify-center overflow-hidden p-3 sm:p-5">
@@ -219,22 +230,29 @@ export default function ConviteMickey({
 
           <nav
             aria-label="Ações do convite"
-            className={`mt-[1.2cqmin] grid w-full max-w-[min(100%,74cqmin)] gap-x-[1.6cqmin] gap-y-[2.2cqmin] pb-[5px] portrait:max-w-full portrait:gap-x-[2.6cqw] portrait:gap-y-[3.4cqw] ${evento.localMapUrl ? "grid-cols-3" : "grid-cols-2"}`}
+            className={`mt-[1.2cqmin] grid w-full max-w-[min(100%,74cqmin)] gap-x-[1.6cqmin] gap-y-[2.2cqmin] pb-[5px] portrait:max-w-full portrait:gap-x-[2.6cqw] portrait:gap-y-[3.4cqw] ${gradeCols}`}
           >
             <Botao
               href={`/confirmacao?token=${t}`}
               icone={<IconeCheck />}
-              className={`${botaoPrincipal} ${confirmar.cls} ${evento.localMapUrl ? "col-span-3" : "col-span-2"}`}
+              className={`${botaoPrincipal} ${confirmar.cls} ${spanTodas}`}
             >
               {confirmar.rotulo}
             </Botao>
-            <Botao
-              href={`/presentes?token=${t}`}
-              icone={<IconePresente />}
-              className={`${botaoSecundario} bg-[#FFC400] text-black`}
-            >
-              Presentes
-            </Botao>
+            {prazo && !encerrado && !respondeuPresenca ? (
+              <p className={`-mt-[1cqmin] font-sans font-medium text-black/70 ${spanTodas} ${txt.pequeno}`}>
+                Confirme até {prazo}
+              </p>
+            ) : null}
+            {evento.listaPresentes ? (
+              <Botao
+                href={`/presentes?token=${t}`}
+                icone={<IconePresente />}
+                className={`${botaoSecundario} bg-[#FFC400] text-black`}
+              >
+                Presentes
+              </Botao>
+            ) : null}
             {evento.localMapUrl ? (
               <Botao
                 href={evento.localMapUrl}

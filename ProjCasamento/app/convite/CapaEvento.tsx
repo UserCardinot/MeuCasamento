@@ -6,8 +6,10 @@ import ContagemRegressiva from "./ContagemRegressiva";
 import {
   formatarDataEvento,
   formatarHoraEvento,
+  formatarPrazoConfirmacao,
   getEventoTimestamp,
   nomeDestaque,
+  prazoConfirmacaoEncerrado,
   type EventoPublico,
 } from "@/lib/evento";
 
@@ -77,6 +79,8 @@ export default function CapaEvento({
   const alvo = getEventoTimestamp(evento);
   const t = encodeURIComponent(token);
   const primeiroNome = nomeConvidado.trim().split(/\s+/)[0];
+  const prazo = formatarPrazoConfirmacao(evento);
+  const encerrado = prazoConfirmacaoEncerrado(evento);
 
   return (
     <InvitePageShell className="py-10 sm:py-14">
@@ -135,26 +139,34 @@ export default function CapaEvento({
         <nav aria-label="O que você deseja fazer?" className="mt-2 grid gap-4">
           <BotaoAcao
             href={`/confirmacao?token=${t}`}
-            titulo="Confirmar presença"
-            descricao="Diga se você vai e quem vai com você"
-            principal={!respondeuPresenca}
+            titulo={encerrado ? "Confirmações encerradas" : "Confirmar presença"}
+            descricao={
+              encerrado
+                ? `O prazo terminou em ${prazo}`
+                : prazo
+                  ? `Confirme até ${prazo}`
+                  : "Diga se você vai e quem vai com você"
+            }
+            principal={!respondeuPresenca && !encerrado}
             icone={
               <svg {...svgProps}>
                 <path d="M6 12.5l4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             }
           />
-          <BotaoAcao
-            href={`/presentes?token=${t}`}
-            titulo="Lista de presentes"
-            descricao="Presenteie com Pix ou cartão"
-            principal={respondeuPresenca}
-            icone={
-              <svg {...svgProps}>
-                <path d="M4 10h16v10H4V10zM12 10v10M4 10h16M12 6c-1.5 0-3 1-3 3h6c0-2-1.5-3-3-3z" strokeLinejoin="round" />
-              </svg>
-            }
-          />
+          {evento.listaPresentes ? (
+            <BotaoAcao
+              href={`/presentes?token=${t}`}
+              titulo="Lista de presentes"
+              descricao="Presenteie com Pix ou cartão"
+              principal={respondeuPresenca || encerrado}
+              icone={
+                <svg {...svgProps}>
+                  <path d="M4 10h16v10H4V10zM12 10v10M4 10h16M12 6c-1.5 0-3 1-3 3h6c0-2-1.5-3-3-3z" strokeLinejoin="round" />
+                </svg>
+              }
+            />
+          ) : null}
           <BotaoAcao
             href={`/recados?token=${t}`}
             titulo="Deixar recado"

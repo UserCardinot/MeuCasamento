@@ -24,6 +24,7 @@ const CAMPOS_TEXTO = [
   "pixNome",
   "pixCidade",
   "mpTaxaPercent",
+  "prazoConfirmacao",
 ] as const satisfies readonly (keyof Evento)[];
 
 type CampoTexto = (typeof CAMPOS_TEXTO)[number];
@@ -35,6 +36,7 @@ function serializar(ev: Evento) {
     tipo: ev.tipo,
     tema: ev.tema,
     mpSandbox: ev.mpSandbox,
+    listaPresentes: ev.listaPresentes,
     mpConfigurado: !!ev.mpAccessTokenEnc,
   };
   for (const c of CAMPOS_TEXTO) out[c] = ev[c];
@@ -79,7 +81,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ erro: "Hora inválida (use o seletor de hora)." }, { status: 400 });
   }
 
+  if (set.prazoConfirmacao && !/^\d{4}-\d{2}-\d{2}$/.test(set.prazoConfirmacao)) {
+    return NextResponse.json({ erro: "Prazo de confirmação inválido (use o seletor de data)." }, { status: 400 });
+  }
+
   if (typeof body.mpSandbox === "boolean") set.mpSandbox = body.mpSandbox;
+  if (typeof body.listaPresentes === "boolean") set.listaPresentes = body.listaPresentes;
   if (body.mpRemoverToken === true) {
     set.mpAccessTokenEnc = "";
   } else if (typeof body.mpAccessToken === "string" && body.mpAccessToken.trim()) {

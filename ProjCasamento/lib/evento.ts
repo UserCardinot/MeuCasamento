@@ -20,6 +20,8 @@ export type EventoPublico = {
   whatsappTemplate: string;
   pixChave: string;
   pixNome: string;
+  prazoConfirmacao: string;
+  listaPresentes: boolean;
 };
 
 const TZ = "America/Sao_Paulo";
@@ -78,6 +80,21 @@ export function diasAteEvento(ev: Pick<EventoPublico, "data">, agora = new Date(
   const start = new Date(`${hoje}T12:00:00`);
   const end = new Date(`${ev.data}T12:00:00`);
   return Math.round((end.getTime() - start.getTime()) / 86_400_000);
+}
+
+/** "25/11/2026", ou "" sem prazo. */
+export function formatarPrazoConfirmacao(ev: Pick<EventoPublico, "prazoConfirmacao">): string {
+  return formatarDataCurta({ data: ev.prazoConfirmacao });
+}
+
+/** Prazo vale até o fim do dia (fuso de São Paulo). */
+export function prazoConfirmacaoEncerrado(
+  ev: Pick<EventoPublico, "prazoConfirmacao">,
+  agora = new Date()
+): boolean {
+  if (!dataValida({ data: ev.prazoConfirmacao })) return false;
+  const hoje = agora.toLocaleDateString("en-CA", { timeZone: TZ });
+  return hoje > ev.prazoConfirmacao;
 }
 
 /** Texto curto para títulos: "Henry" ou "Ediane & Fulano", com fallback no título. */

@@ -31,6 +31,9 @@ export const eventos = pgTable("eventos", {
   localMapUrl: text("local_map_url").notNull().default(""),
   mensagemConvite: text("mensagem_convite").notNull().default(""),
   textoCapa: text("texto_capa").notNull().default(""),
+  /** YYYY-MM-DD, último dia (inclusive) para confirmar presença. Vazio = sem prazo. */
+  prazoConfirmacao: text("prazo_confirmacao").notNull().default(""),
+  listaPresentes: boolean("lista_presentes").notNull().default(true),
   /** Placeholders: {nome} {link} {data} {titulo} {dias} */
   whatsappTemplate: text("whatsapp_template").notNull().default(""),
   pixChave: text("pix_chave").notNull().default(""),

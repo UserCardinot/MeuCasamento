@@ -3,6 +3,7 @@ import { resolverConvidado } from "@/lib/convidado-atual";
 import { upsertPresenca } from "@/lib/repo/presencas";
 import { atualizarConvidado } from "@/lib/repo/convidados";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { formatarPrazoConfirmacao, prazoConfirmacaoEncerrado } from "@/lib/evento";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -37,6 +38,13 @@ export async function POST(request: NextRequest) {
   const ctx = await resolverConvidado(token);
   if (!ctx) {
     return NextResponse.json({ erro: "Token inválido" }, { status: 401 });
+  }
+
+  if (prazoConfirmacaoEncerrado(ctx.evento)) {
+    return NextResponse.json(
+      { erro: `O prazo para confirmar presença terminou em ${formatarPrazoConfirmacao(ctx.evento)}.` },
+      { status: 403 }
+    );
   }
 
   try {

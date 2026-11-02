@@ -24,6 +24,8 @@ type EventoConfig = {
   mpTaxaPercent: string;
   mpSandbox: boolean;
   mpConfigurado: boolean;
+  prazoConfirmacao: string;
+  listaPresentes: boolean;
 };
 
 type UsuarioConfig = { login: string; nome: string; papel: string; trocarSenha: boolean };
@@ -238,6 +240,30 @@ export default function Configuracoes({ onSalvo }: { onSalvo: () => void }) {
           </Campo>
           <Campo id="cfg-hora" label="Horário">
             <input id="cfg-hora" type="time" value={ev.hora} onChange={(e) => set("hora", e.target.value)} className={inputClass} />
+          </Campo>
+          <Campo
+            id="cfg-prazo"
+            label="Confirmar presença até"
+            dica="Último dia em que o convidado consegue confirmar. Depois disso a confirmação fecha sozinha. Vazio = sem prazo."
+          >
+            <input
+              id="cfg-prazo"
+              type="date"
+              value={ev.prazoConfirmacao}
+              onChange={(e) => set("prazoConfirmacao", e.target.value)}
+              className={inputClass}
+            />
+          </Campo>
+          <Campo id="cfg-lista" label="Lista de presentes">
+            <label className="flex h-[42px] items-center gap-2 text-sm text-zinc-700">
+              <input
+                id="cfg-lista"
+                type="checkbox"
+                checked={ev.listaPresentes}
+                onChange={(e) => set("listaPresentes", e.target.checked)}
+              />
+              Mostrar a lista de presentes para os convidados
+            </label>
           </Campo>
           <Campo id="cfg-local" label="Nome do local">
             <input id="cfg-local" value={ev.localNome} onChange={(e) => set("localNome", e.target.value)} className={inputClass} />

@@ -70,6 +70,8 @@ export function toEventoPublico(ev: Evento): EventoPublico {
     whatsappTemplate: ev.whatsappTemplate,
     pixChave: ev.pixChave,
     pixNome: ev.pixNome,
+    prazoConfirmacao: ev.prazoConfirmacao,
+    listaPresentes: ev.listaPresentes,
   };
 }
 

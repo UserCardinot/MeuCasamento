@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { resolverConvidado, pickParam } from "@/lib/convidado-atual";
 import { getPresenca } from "@/lib/repo/presencas";
-import { nomeDestaque } from "@/lib/evento";
+import { formatarPrazoConfirmacao, nomeDestaque, prazoConfirmacaoEncerrado } from "@/lib/evento";
 import { parseAcompanhantesLista } from "@/lib/acompanhantes";
 import { InvitePageShell } from "@/components/invite/InvitePageShell";
 import FormConfirmacao from "./FormConfirmacao";
@@ -48,6 +48,8 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
   const presenca = await getPresenca(convidado.id);
   const nome = convidado.nome || "Convidado";
   const destaque = nomeDestaque(evento);
+  const prazo = formatarPrazoConfirmacao(evento);
+  const encerrado = prazoConfirmacaoEncerrado(evento);
   const confirmadoInicial = presenca === null ? undefined : presenca.confirmado ? "sim" : "nao";
   const mensagemInicial = presenca?.mensagem?.trim() || undefined;
   const acompanhantesConvite = parseAcompanhantesLista(convidado.acompanhantes);
@@ -80,13 +82,36 @@ export default async function ConfirmacaoPage({ searchParams }: Props) {
             </p>
           </header>
 
-          <FormConfirmacao
-            token={token}
-            confirmadoInicial={confirmadoInicial}
-            mensagemInicial={mensagemInicial}
-            acompanhantesConvite={acompanhantesConvite}
-            acompanhantesSelecionadosInicial={acompanhantesSelecionadosInicial}
-          />
+          {encerrado ? (
+            <div className="text-center">
+              <p className="font-invite-caps text-base font-semibold uppercase tracking-[0.12em] text-invite-olive sm:text-lg">
+                Confirmações encerradas
+              </p>
+              <p className="font-sans mx-auto mt-4 max-w-md text-sm leading-relaxed text-invite-olive/85 sm:text-base">
+                O prazo para confirmar presença terminou em {prazo}.
+                {presenca === null
+                  ? " Se ainda quiser ir, fale direto com a família."
+                  : presenca.confirmado
+                    ? " Sua presença está confirmada. Até lá!"
+                    : " Você respondeu que não poderá ir."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {prazo ? (
+                <p className="font-sans mb-8 text-center text-sm font-medium text-invite-olive/85 sm:text-base">
+                  Confirme até <strong>{prazo}</strong>.
+                </p>
+              ) : null}
+              <FormConfirmacao
+                token={token}
+                confirmadoInicial={confirmadoInicial}
+                mensagemInicial={mensagemInicial}
+                acompanhantesConvite={acompanhantesConvite}
+                acompanhantesSelecionadosInicial={acompanhantesSelecionadosInicial}
+              />
+            </>
+          )}
         </div>
       </div>
     </InvitePageShell>

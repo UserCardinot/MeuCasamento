@@ -8,6 +8,13 @@
       "when": 1793623526399,
       "tag": "0000_inicial",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793650848481,
+      "tag": "0001_prazo_e_lista_presentes",
+      "breakpoints": true
     }
   ]
 }

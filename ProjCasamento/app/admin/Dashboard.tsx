@@ -12,10 +12,16 @@ import PendenciasPresencaModal from "./PendenciasPresencaModal";
 import Configuracoes from "./Configuracoes";
 import type { EventoPublico } from "@/lib/evento";
 import {
+  contarPessoasConfirmadas,
   contarPessoasNoConvite,
   totalPessoasConfirmadas,
   totalPessoasConvidadas,
 } from "@/lib/contagemConvidados";
+import {
+  exportarConfirmadosExcel,
+  exportarConfirmadosPDF,
+  type LinhaConfirmado,
+} from "@/lib/exportar-confirmados";
 import { buildConviteWhatsAppUrl } from "@/lib/convite-whatsapp";
 import { matchBuscaCatalogoPresente } from "@/lib/presentes-checkout";
 
@@ -428,6 +434,19 @@ export default function Dashboard() {
   });
   const totalPessoasConfirmadasPresenca = totalPessoasConfirmadas(presencas);
 
+  function linhasConfirmados(): LinhaConfirmado[] {
+    return presencas
+      .filter((p) => contarPessoasConfirmadas(p) > 0)
+      .map((p) => ({
+        nome: p.nome ?? p.token,
+        grupo: tokenParaOrigem.get(String(p.token ?? "").toLowerCase()) ?? "",
+        acompanhantes: p.nomesAcompanhantes ?? "",
+        pessoas: contarPessoasConfirmadas(p),
+        data: p.data,
+      }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }
+
   function exportarCSV(tipo: "convidados" | "presencas") {
     const BOM = "\uFEFF";
     let csv = "";
@@ -456,7 +475,7 @@ export default function Dashboard() {
     URL.revokeObjectURL(url);
   }
 
-  const tabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const todasTabs: { id: TabId; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "overview", label: "Visão geral", icon: <IconLayout /> },
     { id: "convidados", label: "Convidados", icon: <IconUsers />, badge: resumo.totalConvidados },
     { id: "presencas", label: "Presenças", icon: <IconCheck />, badge: resumo.totalPresencas },
@@ -464,6 +483,7 @@ export default function Dashboard() {
     { id: "recados", label: "Recados", icon: <IconChat />, badge: Math.max(recados.length, resumo.totalRecados ?? 0) },
     { id: "configuracoes", label: "Configurações", icon: <IconCog /> },
   ];
+  const tabs = todasTabs.filter((t) => t.id !== "presentes" || evento.listaPresentes);
 
   function selectTab(id: TabId) {
     setTab(id);
@@ -631,12 +651,19 @@ export default function Dashboard() {
                   sub: "Respostas de confirmação recebidas.",
                   bar: "bg-amber-500",
                 },
-                {
-                  label: "Presentes",
-                  value: resumo.totalPresentes,
-                  sub: "Reservas e escolhas no site.",
-                  bar: "bg-rose-500",
-                },
+                evento.listaPresentes
+                  ? {
+                      label: "Presentes",
+                      value: resumo.totalPresentes,
+                      sub: "Reservas e escolhas no site.",
+                      bar: "bg-rose-500",
+                    }
+                  : {
+                      label: "Pessoas confirmadas",
+                      value: totalPessoasConfirmadasPresenca,
+                      sub: "Titular + acompanhantes de quem confirmou.",
+                      bar: "bg-rose-500",
+                    },
               ].map((card) => (
                 <div
                   key={card.label}
@@ -672,13 +699,15 @@ export default function Dashboard() {
                 >
                   Presenças
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("presentes")}
-                  className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
-                >
-                  Presentes
-                </button>
+                {evento.listaPresentes ? (
+                  <button
+                    type="button"
+                    onClick={() => setTab("presentes")}
+                    className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                  >
+                    Presentes
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -921,6 +950,22 @@ export default function Dashboard() {
                     className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-casamento-oliva-escuro shadow-sm transition hover:bg-zinc-50"
                   >
                     Exportar CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportarConfirmadosExcel(linhasConfirmados(), evento.titulo)}
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 shadow-sm transition hover:bg-emerald-100"
+                    title="Só quem confirmou, com total de pessoas"
+                  >
+                    Confirmados (Excel)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportarConfirmadosPDF(linhasConfirmados(), evento.titulo)}
+                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900 shadow-sm transition hover:bg-red-100"
+                    title="Só quem confirmou, com total de pessoas"
+                  >
+                    Confirmados (PDF)
                   </button>
                 </>
               }
