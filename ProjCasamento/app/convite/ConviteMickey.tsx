@@ -149,10 +149,11 @@ export default function ConviteMickey({
   const spanTodas = ({ 1: "col-span-1", 2: "col-span-2", 3: "col-span-3" } as const)[secundarios as 1 | 2 | 3];
 
   return (
-    <main className="invite-page-shell flex h-[100svh] w-full items-center justify-center overflow-hidden p-3 sm:p-5">
-      <div className="relative flex overflow-hidden rounded-2xl border-4 border-black bg-white shadow-2xl [container-type:size] landscape:aspect-[16/9] landscape:w-[min(100%,calc((100svh-2.5rem)*16/9))] portrait:h-full portrait:w-full portrait:flex-col">
+    <main className="invite-page-shell flex w-full justify-center p-3 sm:p-5 landscape:h-[100svh] landscape:items-center landscape:overflow-hidden portrait:min-h-[100svh] portrait:items-start portrait:py-5">
+      {/* Em retrato a altura é livre (rola a página): container só na largura. */}
+      <div className="relative flex overflow-hidden rounded-2xl border-4 border-black bg-white shadow-2xl landscape:aspect-[16/9] landscape:w-[min(100%,calc((100svh-2.5rem)*16/9))] landscape:[container-type:size] portrait:w-full portrait:flex-col portrait:[container-type:inline-size]">
         <div
-          className="relative shrink-0 bg-invite-olive landscape:h-full landscape:w-[42%] landscape:border-r-[6px] landscape:border-[#FFC400] portrait:h-[36%] portrait:w-full portrait:border-b-[6px] portrait:border-[#FFC400]"
+          className="relative shrink-0 bg-invite-olive landscape:h-full landscape:w-[42%] landscape:border-r-[6px] landscape:border-[#FFC400] portrait:h-[100cqw] portrait:max-h-[60svh] portrait:w-full portrait:border-b-[6px] portrait:border-[#FFC400]"
           style={pontinhosBrancos}
         >
           <div className="absolute inset-x-[6%] bottom-0 top-[5%] flex flex-col items-center">
@@ -183,9 +184,9 @@ export default function ConviteMickey({
           </div>
         </div>
 
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-[2cqmin] px-[4cqw] py-[3cqh] text-center portrait:gap-[2.4cqw]">
-          <SimboloMickey className="absolute right-[2.5cqmin] top-[2.5cqmin] h-auto w-[max(2.5rem,9cqmin)] portrait:w-[12cqw]" />
-          <p className={`font-invite-caps font-medium uppercase tracking-[0.14em] text-black ${txt.pequeno}`}>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-[2cqmin] px-[4cqw] py-[3cqh] text-center portrait:gap-[3.4cqw] portrait:px-[5cqw] portrait:pb-[7cqw] portrait:pt-[14cqw]">
+          <SimboloMickey className="absolute right-[2.5cqmin] top-[2.5cqmin] h-auto w-[max(2.5rem,9cqmin)] portrait:right-[3cqw] portrait:top-[3cqw] portrait:w-[11cqw]" />
+          <p className="max-w-[90%] font-invite-caps font-bold uppercase leading-snug tracking-[0.1em] text-black text-[max(0.8rem,3cqmin)] portrait:text-[max(0.95rem,4.6cqw)]">
             Você está convidado para o aniversário de
           </p>
 
