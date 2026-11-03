@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatAcompanhantesLista, unirAcompanhantes } from "@/lib/acompanhantes";
+import { unirAcompanhantes } from "@/lib/acompanhantes";
 
 type Props = {
   sugestoes: string[];
@@ -46,41 +46,18 @@ export default function SelecaoAcompanhantes({ sugestoes, selecionados, onChange
     setNovoNome("");
   }
 
-  if (sugestoes.length === 0 && selecionados.length === 0) {
-    return (
-      <div>
-        <label htmlFor="acompanhantes-livre" className={labelClass}>
-          Acompanhantes{" "}
-          <span className="font-sans font-normal normal-case tracking-normal text-invite-olive/55">
-            (opcional)
-          </span>
-        </label>
-        <input
-          id="acompanhantes-livre"
-          type="text"
-          value={formatAcompanhantesLista(selecionados)}
-          onChange={(e) =>
-            onChange(
-              e.target.value
-                .split(/[,;]/)
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
-          placeholder="Nomes separados por vírgula"
-          className={fieldClass}
-        />
-      </div>
-    );
-  }
-
   return (
     <div>
-      <p className={labelClass}>Quem vai com você?</p>
-      <p className="font-sans mb-4 text-sm normal-case tracking-normal text-invite-olive/75">
-        Marque quem estará presente. Você pode alterar a lista do seu convite.
+      <p className={labelClass}>
+        Quem vai com você?{" "}
+        <span className="font-sans font-normal normal-case tracking-normal text-invite-olive/55">(opcional)</span>
       </p>
-      <ul className="space-y-2.5">
+      <p className="font-sans mb-4 text-sm normal-case tracking-normal text-invite-olive/75">
+        {sugestoes.length > 0
+          ? "Marque quem estará presente. Para incluir mais alguém, escreva o nome e toque em Adicionar."
+          : "Escreva o nome de cada pessoa e toque em Adicionar."}
+      </p>
+      <ul className={opcoes.length > 0 ? "space-y-2.5" : "hidden"}>
         {opcoes.map((nome) => {
           const ativo = estaSelecionado(nome);
           const doConvite = sugestoes.some((s) => s.toLowerCase() === nome.toLowerCase());
@@ -110,7 +87,7 @@ export default function SelecaoAcompanhantes({ sugestoes, selecionados, onChange
           );
         })}
       </ul>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+      <div className={`flex flex-col gap-2 sm:flex-row sm:items-end ${opcoes.length > 0 ? "mt-4" : ""}`}>
         <div className="min-w-0 flex-1">
           <label htmlFor="acompanhante-outro" className="sr-only">
             Outro acompanhante
@@ -126,7 +103,10 @@ export default function SelecaoAcompanhantes({ sugestoes, selecionados, onChange
                 adicionarOutro();
               }
             }}
-            placeholder="Outro nome (opcional)"
+            onBlur={adicionarOutro}
+            enterKeyHint="done"
+            autoComplete="off"
+            placeholder={opcoes.length > 0 ? "Outro nome" : "Nome do acompanhante"}
             className={fieldClass}
           />
         </div>
